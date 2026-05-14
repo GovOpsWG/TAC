@@ -1,9 +1,13 @@
 # Proposal: GovOps Initiative — New ORBIT Technical Initiative
 
 **Status:** Draft for TSC consideration
+
 **Proposed lifecycle stage:** Sandbox (initial)
-**Proposed initiative lead:** Michael Schwartz (Gluu) — co-leads welcome
+
+**Proposed initiative lead:** Michael Schwartz (Gluu) — Rohit Khare (Independent)
+
 **TAC sponsor:** TBD (TSC will identify alongside the existing ORBIT TAC sponsor)
+
 **Charter section to amend:** §3 *Technical Initiatives*, *Active Technical Initiatives* table
 
 ---
