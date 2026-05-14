@@ -12,23 +12,21 @@
 
 **Related:**
 - GovOps Phase 1 technical design — [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md)
-- Capability-based access control (Mike Schwartz, Gluu Federation on Medium): [Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9), [Permission ↔ Capability](https://gluufederation.medium.com/permission-capability-57a1c4547eff), [Capabilities = Risk](https://gluufederation.medium.com/capabilities-risk-rethinking-modern-enterprise-access-control-6ca839a9ed72), [The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f)
 - OpenID AuthZEN — PARC (Principal, Action, Resource, Context) **authorization request** shape
+- Signed tokens in **PARC Context** — **JSON Web Tokens** ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)) and similar signed artifacts are commonly passed as **evidence** in the request **Context** for PDPs to evaluate when permitting an **(action, resource)** capability.
 
 ---
 
 ## 1. One-page summary
 
-The **GovOps Initiative** develops interoperable, vendor-neutral Gemara artifacts and tooling for the **continuous, measurable governance of software authorization**. GovOps takes a **capability-based** approach aligned with Schwartz's TBAC / capabilities-first framing ([Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f)): the **unit of governance in the catalog** is the **(action, resource)** pair — the capability — not the requester and not the ambient context. The discipline GovOps formalizes is treating *whether a given action on a given resource may be permitted under deployed policy, given PARC Context and supporting evidence in authorization requests* as a first-class, machine-readable governance domain.
+The **GovOps Initiative** develops interoperable, vendor-neutral Gemara artifacts and tooling for the **continuous, measurable governance of software authorization**. GovOps takes a **capability-based** approach: the **unit of governance in the catalog** is the **(action, resource)** pair — the capability — not the requester and not the ambient context. In one sentence: GovOps is to **authorization governance** what OSPS Baseline is to **project security baselines** — a maintainer-friendly catalog plus an enterprise-grade overlay, both expressed as Gemara schema, both consumable by ORBIT tooling.
 
-GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization Capability Catalog (ACC)** — a Gemara-based way to inventory the authorization surface as a finite set of **(action, resource)** capabilities. **Conditions** on when an action on a resource is allowed are expressed in **TIGER pillar `#ControlCatalog`s** and in **deployed policy**; the design document optionally allows **non-normative catalog documentation** (e.g., expected PARC Context) for reviewers — that documentation does **not** redefine the capability identity. Subsequent phases extend the same artifact substrate into adjacent governance concerns (see §4.2).
-
-In one sentence: GovOps is to **authorization governance** what OSPS Baseline is to **project security baselines** — a maintainer-friendly catalog plus an enterprise-grade overlay, both expressed as Gemara schema, both consumable by ORBIT tooling.
+GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization Capability Catalog (ACC)** — a Gemara-based way to inventory the authorization surface as a finite set of **(action, resource)** capabilities. 
 
 The Phase 1 (ACC) deliverables are all expressed as existing Gemara artifact types so they require no Gemara schema changes to begin:
 
 1. An **Enterprise Capability Profile** of `#Capability` — a Gemara `#CapabilityCatalog` whose entries identify capabilities by **`action` and `resource` only** (plus Gemara `#Capability` metadata such as `id`, `title`, `description`, `group`). Optional fields document risk, sensitivity, or expected request context for tooling; see the design document.
-2. A small family of **TIGER pillar `#ControlCatalog` templates** — Transparency, Integrity, Governance, Events, Resilience — that express requirements over a capability catalog. (Pillar controls govern **when** an **(action, resource)** may be permitted — policy, evidence, and operations — without redefining capability identity.)
+2. A small family of **TIGER metric `#ControlCatalog` templates** — used by governors to assess the risk management, accountability, and transparency levels of the authorization governance program. 
 3. **`#MappingDocument` artifacts** linking ACC content to OSPS Baseline, NIST 800-53, ISO 27001, and SOC 2.
 
 A working design document for Phase 1 already exists in this repository: [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md). It is the technical basis for this proposal.
@@ -281,7 +279,7 @@ Per CHARTER §3.c, future-phase additions (§4.2) that materially expand initiat
 - GovOps WG proposal (separate, top-level WG) — [`openssf-wg-proposal.md`](./openssf-wg-proposal.md) (this repository)
 - ORBIT Launchpad SIG — [`orbit-wg-launchpad.md`](./orbit-wg-launchpad.md) (this repository)
 - OpenID AuthZEN — PARC **authorization request** shape (distinct from **(action, resource)** capability identity in the catalog; see design document).
-- Mike Schwartz (Gluu Federation) — capabilities and TBAC on Medium: [Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9), [Permission ↔ Capability](https://gluufederation.medium.com/permission-capability-57a1c4547eff), [Capabilities = Risk](https://gluufederation.medium.com/capabilities-risk-rethinking-modern-enterprise-access-control-6ca839a9ed72), [The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f).
+- RFC 7519 — JSON Web Token (JWT), commonly used as signed evidence in **PARC Context**.
 
 ---
 

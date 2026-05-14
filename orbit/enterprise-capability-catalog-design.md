@@ -6,7 +6,7 @@
 - [GovOps WG Proposal](./openssf-wg-proposal.md)
 - [Gemara Project](https://gemara.openssf.org) — `#CapabilityCatalog` (stable), ADR-0019 *Promote Capabilities to a First-class Catalog*
 - OpenID AuthZEN — PARC (Principal, Action, Resource, Context) authorization **request** shape
-- Capability-based access control framing — Mike Schwartz, Gluu Federation on Medium: [Capabilities Are the New Roles — Only They Actually Work](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Capabilities = Risk](https://gluufederation.medium.com/capabilities-risk-rethinking-modern-enterprise-access-control-6ca839a9ed72), [Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9), [Permission ↔ Capability](https://gluufederation.medium.com/permission-capability-57a1c4547eff), [The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f)
+- Signed tokens in **PARC Context** — A common integration pattern is that **JSON Web Tokens** ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)) and similar signed artifacts are passed as **evidence** inside the request **Context**; the PDP evaluates their claims when deciding whether an **(action, resource)** capability may be permitted for this invocation.
 
 ---
 
@@ -14,11 +14,11 @@
 
 This document proposes a design for representing **enterprise capabilities** — discrete **(action, resource)** pairs the organization recognizes as units of authorization risk and governance — as **first-class catalog entries in the [Gemara](https://gemara.openssf.org) GRC engineering model**, and for organizing a complete **GovOps repository** of Gemara artifacts around them.
 
-Following the capability-based framing in Schwartz's writing (e.g., [Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9)): applications and policy engines ask whether a **named operation on a named resource** can be granted; the **capability** is that pair, not the subject and not the ambient context. Principal, token claims, and context are **inputs to policy** when a decision is requested — they determine *whether* a capability may be exercised *right now*, not *what* the capability is. OpenID AuthZEN's **PARC** envelope (Principal, Action, Resource, Context) is the standard shape of that **authorization request** at the PDP boundary; it is not the definition of a capability.
+In a **capability-based** model, applications and policy engines ask whether a **named operation on a named resource** can be granted; the **capability** is that **(action, resource)** pair, not the requester and not the ambient context. The **PARC Principal**, **Context** (often including **signed JWTs** or other attestations whose claims the PDP interprets), and environmental attributes are **inputs to policy** when a decision is requested — they determine *whether* a capability may be exercised *right now*, not *what* the capability is. OpenID AuthZEN's **PARC** envelope (Principal, Action, Resource, Context) is the standard shape of that **authorization request** at the PDP boundary; it is not the definition of a capability.
 
 Three ideas combine to form the design:
 
-1. **Capabilities are action–resource pairs; PARC is the request envelope.** The catalog inventories **(action, resource)**. At evaluation time, a PDP receives a **PARC-shaped request** (PARC Principal — the requester — plus action, resource instance, and context). Engine neutrality comes from the fact that every PDP class can consume PARC-shaped requests while the catalog stays a domain-centric inventory of discrete capabilities — the same separation Schwartz describes when contrasting person-centric entitlements catalogs with a **capabilities catalog** ([Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9)).
+1. **Capabilities are action–resource pairs; PARC is the request envelope.** The catalog inventories **(action, resource)**. At evaluation time, a PDP receives a **PARC-shaped request** (PARC Principal — the requester — plus action, resource instance, and context, often carrying **signed JWT evidence** in Context for policy to consume). Engine neutrality comes from the fact that every PDP class can consume PARC-shaped requests while the catalog stays a domain-centric inventory of discrete **(action, resource)** entries — separate from person-centric **entitlement** matrices maintained in IAM or IGA systems.
 2. **A GovOps repository of Gemara artifacts.** A single `#CapabilityCatalog` (`GovOps-AC`) inventories the enterprise's authorization surface as those **(action, resource)** capabilities, and a small family of `#ControlCatalog` artifacts — one per **TIGER** pillar (Transparency, Integrity, Governance, Events, Resilience) — express the requirements those capabilities must satisfy. Mapping documents tie the catalog to external compliance frameworks.
 3. **Provable operational claims, not just policy assertions.** Where today's GRC says *"the system MUST require MFA"*, GovOps elevates the standard to *"there exists no satisfiable authorization path where this capability succeeds without MFA, given the deployed policy."* That shift — from *attested presence* to *demonstrated impossibility* — is what the **TIGER metric** measures.
 
@@ -48,7 +48,7 @@ The **GovOps WG proposal** (Objective #2, *"Govern Capabilities, Not Just Identi
 
 ### 2.2 Capabilities are (action, resource); PARC is how PDPs evaluate requests
 
-**Capability (this document, aligned with Schwartz's TBAC / capabilities-first framing).** A **capability** is an **(action, resource)** pair: a discrete, nameable operation on a resource type in a domain (see [Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Permission ↔ Capability](https://gluufederation.medium.com/permission-capability-57a1c4547eff)). It is **not** a principal, not a role, and not a context tuple. Risk and governance attach to the pair ([Capabilities = Risk](https://gluufederation.medium.com/capabilities-risk-rethinking-modern-enterprise-access-control-6ca839a9ed72)).
+**Capability (this document).** A **capability** is an **(action, resource)** pair: a discrete, nameable operation on a resource type in a domain. It is **not** a principal, not a role, and not a context tuple. Risk and governance attach to the pair itself; **Context** (including JWT-derived claims) supplies evidence at evaluation time, not the capability's identity.
 
 **PARC (AuthZEN).** The OpenID AuthZEN working group standardizes **PARC** — Principal, Action, Resource, Context — as the **payload of an authorization request** to a PDP. A conforming PDP accepts a PARC-shaped request and returns Permit / Deny plus optional obligations and reasons. PARC is intentionally orthogonal to the policy store strategy:
 
@@ -57,7 +57,7 @@ The **GovOps WG proposal** (Objective #2, *"Govern Capabilities, Not Just Identi
 - An **ABAC engine** evaluates attribute predicates over PARC-shaped inputs.
 - An **RBAC mapper** resolves the Principal's roles and ultimately answers about **action on resource** for a concrete request.
 
-**Relationship between the catalog and PARC.** The **GovOps-AC** catalog lists **capabilities** — **(action, resource)** — the organization treats as first-class. When an application asks for a decision, it sends a **PARC request** whose **Action** and **Resource** (and usually resource instance identifier) refer to one of those capabilities; **Principal** and **Context** supply the evidence policy uses to decide **whether that capability may be exercised in this invocation**. The catalog is therefore the domain-centric inventory Schwartz advocates when moving from entitlements matrices to a **registry of capabilities** ([The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f)); PARC is the wire-level shape of the question, not the definition of the capability.
+**Relationship between the catalog and PARC.** The **GovOps-AC** catalog lists **capabilities** — **(action, resource)** — the organization treats as first-class. When an application asks for a decision, it sends a **PARC request** whose **Action** and **Resource** (and usually resource instance identifier) refer to one of those capabilities; **Principal** and **Context** supply the evidence policy uses to decide **whether that capability may be exercised in this invocation** — including, in typical deployments, **signed JWTs** or equivalent tokens whose claims appear in **Context** for the PDP to evaluate. The catalog is therefore a domain-centric **registry of (action, resource) capabilities**; PARC is the wire-level shape of the authorization **question**, not the definition of the capability.
 
 ### 2.3 Why Gemara
 
@@ -95,11 +95,11 @@ The TIGER metric (§9) measures the fraction of declared requirements for which 
 
 | Term | Meaning |
 |---|---|
-| **Capability** | An **(action, resource)** pair: a discrete, nameable operation on a resource type. This matches the capabilities-first / TBAC framing in Schwartz's articles — *what* can be done on *what*, independent of *who* is asking ([Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9)). A capability is **not** a principal and **not** a context tuple. |
+| **Capability** | An **(action, resource)** pair: a discrete, nameable operation on a resource type. *What* can be done on *what* is catalogued here, independent of *who* is asking in any given request. A capability is **not** a principal and **not** a context tuple. |
 | **Principal** | The actor supplied in a **PARC authorization request** when the PDP is asked whether an operation is permitted. Policy may use principal attributes; the principal does not define the capability. |
 | **Action** | The verb half of a capability (e.g., `read`, `create`, `delete`, `transfer`, `assume`). |
 | **Resource** | The noun half of a capability: the resource **type** the action applies to (e.g., `Invoice`, `BankAccount`, `Repository`, `PolicyDocument`). The catalog records the *type*; runtime requests identify specific instances. |
-| **Context** | Attributes bundled with a **PARC request** (time, IP, step-up evidence, approval counts, device posture, etc.). Context answers *whether* a capability may be exercised in this invocation; it is not part of the capability identity. |
+| **Context** | Attributes bundled with a **PARC request** (time, IP, approval counts, device posture, etc.), commonly including **signed JWTs** ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)) or similar tokens whose claims the PDP treats as **evidence**. Context answers *whether* a capability may be exercised in this invocation; it is not part of the capability identity. |
 | **PARC** | Principal, Action, Resource, Context — the OpenID AuthZEN **authorization request** shape. Used at the PDP boundary; **not** synonymous with "capability." |
 | **Enterprise capability** | A Gemara catalog entry whose **identity** is an **(action, resource)** pair (plus `id`, `title`, `description`, `group` per `#Capability`). Optional fields may document risk, sensitivity, or **expected** policy preconditions; those extensions do not redefine the capability. |
 | **TIGER** | Five governance pillars used by this design: **T**ransparency, **I**ntegrity (of request context and evidence — not "identity" of the subject), **G**overnance, **E**vents, **R**esilience. Also the name of the derived metric defined in §9. |
@@ -243,7 +243,7 @@ package gemara
 #EnterpriseCapability: {
     #Capability
 
-    // action + resource together ARE the capability (TBAC / registry sense).
+    // action + resource together ARE the capability identity.
     action:   string
     resource: string
 
@@ -295,7 +295,7 @@ package gemara
 }
 ```
 
-The **normative** fields that define what is being governed are **`action` and `resource`** only. Everything else is optional documentation, risk metadata, or engine correlation. That separation keeps the catalog aligned with a **capabilities registry** ([The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f)) and avoids collapsing "capability" into a full PARC tuple.
+The **normative** fields that define what is being governed are **`action` and `resource`** only. Everything else is optional documentation, risk metadata, or engine correlation. That separation keeps the catalog a domain-centric **capability registry** and avoids collapsing "capability" into a full PARC tuple.
 
 ### 6.3 Catalog organization with `#Group`
 
@@ -414,7 +414,7 @@ Evidence sources: PDP decision logs, AuthZEN evaluate response reasons, append-o
 
 ### 7.2 `GovOps-Integrity.yaml`
 
-The **Integrity** pillar governs **evidence and context integrity** for decisions over catalog capabilities — for example, that high-risk **(action, resource)** pairs cannot be permitted unless the **PARC Context** (and token-derived evidence Schwartz describes in TBAC) satisfies documented assurance requirements. The novel framing is **mathematical impossibility, not configuration presence**.
+The **Integrity** pillar governs **evidence and context integrity** for decisions over catalog capabilities — for example, that high-risk **(action, resource)** pairs cannot be permitted unless the **PARC Context** satisfies documented assurance requirements, including where policy relies on **JWT claims** (or equivalent signed token evidence) supplied in Context. The novel framing is **mathematical impossibility, not configuration presence**.
 
 ```yaml
 title: GovOps Integrity Catalog
@@ -913,7 +913,7 @@ The toolchain is engine-pluggable: each `govops prove` plug-in calls a specific 
 
 Gemara already provides most of what is needed to govern enterprise capabilities: a stable `#CapabilityCatalog`, a stable `#ControlCatalog` and `#AssessmentRequirement`, mapping primitives that include `Capability` as an `EntryType`, a `#Lexicon`, and the layered Threat/Control/Policy/Log machinery. The remaining work is:
 
-- **An Enterprise Capability Profile** of `#Capability` whose **identity** is **(action, resource)** — engine-neutral, aligned with a capabilities-first / TBAC registry ([The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f)), with **PARC** reserved for **authorization requests** at the PDP boundary (OpenID AuthZEN), not conflated with the capability tuple.
+- **An Enterprise Capability Profile** of `#Capability` whose **identity** is **(action, resource)** — engine-neutral, with **PARC** reserved for **authorization requests** at the PDP boundary (OpenID AuthZEN), not conflated with the capability tuple. **Context** commonly carries **signed JWTs** as evidence for policy evaluation ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)).
 - **A repository convention** that pairs the capability catalog with five TIGER pillar `#ControlCatalog`s.
 - **A discipline of provable claims** alongside conventional configuration assertions, recorded in `#EvaluationLog` evidence entries.
 - **A TIGER metric** that measures the fraction of declared requirements that are demonstrably true of the deployed authorization surface.
@@ -928,5 +928,5 @@ Together they make "GovOps" a measurable, vendor-neutral practice rather than a 
 - Gemara ADRs — 0017 (Base Catalog Type), 0018 (Promote Nested Concepts to Catalogs), 0019 (Promote Capabilities), 0020 (Groups), 0021 (Lexicon).
 - OpenSSF GovOps WG proposal — `orbit/openssf-wg-proposal.md` (this repository).
 - OpenID AuthZEN — Authorization API specification using the PARC **request** shape.
-- Mike Schwartz (Gluu Federation) — capability-based access control and TBAC on Medium: [Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Capabilities = Risk](https://gluufederation.medium.com/capabilities-risk-rethinking-modern-enterprise-access-control-6ca839a9ed72), [Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9), [Permission ↔ Capability](https://gluufederation.medium.com/permission-capability-57a1c4547eff), [The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f).
+- RFC 7519 — JSON Web Token (JWT), commonly used as signed evidence carried in **PARC Context**.
 - NIST SP 800-53 r5, ISO/IEC 27001, SOC 2 — example mapping targets for `#MappingDocument`.
