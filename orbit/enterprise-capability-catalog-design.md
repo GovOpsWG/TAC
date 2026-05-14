@@ -5,18 +5,21 @@
 **Related:**
 - [GovOps WG Proposal](./openssf-wg-proposal.md)
 - [Gemara Project](https://gemara.openssf.org) — `#CapabilityCatalog` (stable), ADR-0019 *Promote Capabilities to a First-class Catalog*
-- OpenID AuthZEN — PARC (Principal, Action, Resource, Context) authorization request shape
+- OpenID AuthZEN — PARC (Principal, Action, Resource, Context) authorization **request** shape
+- Capability-based access control framing — Mike Schwartz, Gluu Federation on Medium: [Capabilities Are the New Roles — Only They Actually Work](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Capabilities = Risk](https://gluufederation.medium.com/capabilities-risk-rethinking-modern-enterprise-access-control-6ca839a9ed72), [Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9), [Permission ↔ Capability](https://gluufederation.medium.com/permission-capability-57a1c4547eff), [The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f)
 
 ---
 
 ## 1. Abstract
 
-This document proposes a design for representing **Enterprise Capabilities** — concrete `(Principal-types, Action, Resource, Context)` tuples that an enterprise authorizes — as **first-class catalog entries in the [Gemara](https://gemara.openssf.org) GRC engineering model**, and for organizing a complete **GovOps repository** of Gemara artifacts around them.
+This document proposes a design for representing **enterprise capabilities** — discrete **(action, resource)** pairs the organization recognizes as units of authorization risk and governance — as **first-class catalog entries in the [Gemara](https://gemara.openssf.org) GRC engineering model**, and for organizing a complete **GovOps repository** of Gemara artifacts around them.
+
+Following the capability-based framing in Schwartz's writing (e.g., [Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9)): applications and policy engines ask whether a **named operation on a named resource** can be granted; the **capability** is that pair, not the subject and not the ambient context. Principal, token claims, and context are **inputs to policy** when a decision is requested — they determine *whether* a capability may be exercised *right now*, not *what* the capability is. OpenID AuthZEN's **PARC** envelope (Principal, Action, Resource, Context) is the standard shape of that **authorization request** at the PDP boundary; it is not the definition of a capability.
 
 Three ideas combine to form the design:
 
-1. **PARC as the canonical capability shape.** Following the OpenID AuthZEN authorization API, a capability is described by its Principal types, Action, Resource, and Context predicates. PARC is engine-neutral: any PDP — policy-language, graph, ABAC, RBAC, or hybrid — produces decisions over PARC-shaped requests, so a PARC-shaped capability declaration travels across engines without lock-in.
-2. **A GovOps repository of Gemara artifacts.** A single `#CapabilityCatalog` (`GovOps-AC`) inventories the enterprise's authorization surface, and a small family of `#ControlCatalog` artifacts — one per **TIGER** pillar (Transparency, Identity, Governance, Events, Resilience) — express the requirements those capabilities must satisfy. Mapping documents tie the catalog to external compliance frameworks.
+1. **Capabilities are action–resource pairs; PARC is the request envelope.** The catalog inventories **(action, resource)**. At evaluation time, a PDP receives a **PARC-shaped request** (PARC Principal — the requester — plus action, resource instance, and context). Engine neutrality comes from the fact that every PDP class can consume PARC-shaped requests while the catalog stays a domain-centric inventory of discrete capabilities — the same separation Schwartz describes when contrasting person-centric entitlements catalogs with a **capabilities catalog** ([Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9)).
+2. **A GovOps repository of Gemara artifacts.** A single `#CapabilityCatalog` (`GovOps-AC`) inventories the enterprise's authorization surface as those **(action, resource)** capabilities, and a small family of `#ControlCatalog` artifacts — one per **TIGER** pillar (Transparency, Integrity, Governance, Events, Resilience) — express the requirements those capabilities must satisfy. Mapping documents tie the catalog to external compliance frameworks.
 3. **Provable operational claims, not just policy assertions.** Where today's GRC says *"the system MUST require MFA"*, GovOps elevates the standard to *"there exists no satisfiable authorization path where this capability succeeds without MFA, given the deployed policy."* That shift — from *attested presence* to *demonstrated impossibility* — is what the **TIGER metric** measures.
 
 Gemara already provides 90% of the substrate: a stable `#CapabilityCatalog` (ADR-0019), `#ControlCatalog` and `#AssessmentRequirement`, mapping primitives that include `Capability` as an `EntryType`, `#Lexicon`, `#EvaluationLog`, `#EnforcementLog`, and `#AuditLog`. The remaining 10% is a small, additive **Enterprise Capability Profile** of `#Capability` and a set of conventions for arranging the artifacts.
@@ -27,32 +30,34 @@ Gemara already provides 90% of the substrate: a stable `#CapabilityCatalog` (ADR
 
 ### 2.1 What enterprises need to govern
 
-Modern enterprises run thousands of services, APIs, and autonomous agents. Each makes — or is the target of — authorization decisions of the form *"Principal P is allowed to perform Action A on Resource R under Context C."*
+Modern enterprises run thousands of services, APIs, and autonomous agents. Each participates in authorization decisions that are ultimately answered as: *given this PARC Principal (requester), this action on this resource, and this context (including token and environmental evidence), does policy permit the operation?*
 
-Today that surface is described in many incompatible ways:
+Today the **authorization surface** — the set of meaningful **(action, resource)** combinations the estate exposes — is described in many incompatible ways:
 
 - IAM systems (AWS, Azure, GCP) each define their own service / action / resource taxonomies.
 - IGA platforms model "entitlements" as opaque rows in a directory.
 - Application teams hard-code action / resource pairs in policy engines (Cedar, OPA / Rego, OpenFGA, AuthZEN PDPs, Casbin, custom RBAC).
 - Compliance teams describe the same surface in prose ("limit access to PII to authorized personnel") with no machine-readable link to enforcement.
 
-The **GovOps WG proposal** (Objective #2, *"Govern Capabilities, Not Just Identities"*) explicitly calls out the need to expand governance from *"who has which role"* to *"which actions are possible on which resources under which conditions."* That requires a shared, declarative inventory — a **catalog of enterprise capabilities** — that is:
+The **GovOps WG proposal** (Objective #2, *"Govern Capabilities, Not Just Identities"*) explicitly calls out the need to expand governance from *"who has which role"* to governing **what operations on what resources** exist and how they are controlled. That requires a shared, declarative inventory — a **catalog of (action, resource) capabilities** — that is:
 
 1. **Finitely enumerable** so it can be reviewed, measured, and reasoned about (GovOps Objective #3).
 2. **Engine neutral** so policy can be analyzed across Cedar, OPA, OpenFGA, IAM, graph engines, and AuthZEN-conformant PDPs.
-3. **Composable** with threats, controls, risks, and policies so a capability becomes traceable from "what the enterprise authorizes" through "what could go wrong" to "what we measure and enforce."
+3. **Composable** with threats, controls, risks, and policies so a capability becomes traceable from "what the enterprise exposes as authorizable" through "what could go wrong" to "what we measure and enforce."
 4. **GRC-aligned** to plug into ISO 27001, SOC 2, NIST 800-53 reporting without a parallel data model.
 
-### 2.2 Why PARC is the right canonical shape
+### 2.2 Capabilities are (action, resource); PARC is how PDPs evaluate requests
 
-The OpenID AuthZEN working group has standardized **PARC** — Principal, Action, Resource, Context — as the request payload for authorization decisions. A conforming PDP exposes an evaluate endpoint that accepts a PARC-shaped request and returns Permit / Deny plus optional obligations and reasons. PARC is intentionally orthogonal to the policy store strategy:
+**Capability (this document, aligned with Schwartz's TBAC / capabilities-first framing).** A **capability** is an **(action, resource)** pair: a discrete, nameable operation on a resource type in a domain (see [Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Permission ↔ Capability](https://gluufederation.medium.com/permission-capability-57a1c4547eff)). It is **not** a principal, not a role, and not a context tuple. Risk and governance attach to the pair ([Capabilities = Risk](https://gluufederation.medium.com/capabilities-risk-rethinking-modern-enterprise-access-control-6ca839a9ed72)).
 
-- A **policy-language PDP** (Cedar, Rego) evaluates rules over PARC inputs.
-- A **relationship/graph PDP** (OpenFGA, Zanzibar) checks reachability over PARC inputs.
-- An **ABAC engine** evaluates attribute predicates over PARC inputs.
-- An **RBAC mapper** resolves the Principal's roles and looks up Action/Resource pairs.
+**PARC (AuthZEN).** The OpenID AuthZEN working group standardizes **PARC** — Principal, Action, Resource, Context — as the **payload of an authorization request** to a PDP. A conforming PDP accepts a PARC-shaped request and returns Permit / Deny plus optional obligations and reasons. PARC is intentionally orthogonal to the policy store strategy:
 
-Because every PDP class consumes PARC requests, a PARC-shaped *capability declaration* is the natural enterprise-side counterpart: each catalog entry is the type signature of a class of PARC requests the enterprise authorizes. That makes the catalog the canonical, vendor-neutral inventory of the authorization surface — independent of any one policy store specification.
+- A **policy-language PDP** (Cedar, Rego) evaluates rules over PARC-shaped requests.
+- A **relationship/graph PDP** (OpenFGA, Zanzibar) checks reachability given PARC-shaped inputs.
+- An **ABAC engine** evaluates attribute predicates over PARC-shaped inputs.
+- An **RBAC mapper** resolves the Principal's roles and ultimately answers about **action on resource** for a concrete request.
+
+**Relationship between the catalog and PARC.** The **GovOps-AC** catalog lists **capabilities** — **(action, resource)** — the organization treats as first-class. When an application asks for a decision, it sends a **PARC request** whose **Action** and **Resource** (and usually resource instance identifier) refer to one of those capabilities; **Principal** and **Context** supply the evidence policy uses to decide **whether that capability may be exercised in this invocation**. The catalog is therefore the domain-centric inventory Schwartz advocates when moving from entitlements matrices to a **registry of capabilities** ([The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f)); PARC is the wire-level shape of the question, not the definition of the capability.
 
 ### 2.3 Why Gemara
 
@@ -64,7 +69,7 @@ Gemara already supplies:
 - A **`#Lexicon`** artifact for controlled vocabulary, useful for action verbs and resource type names.
 - A `#Catalog` base that supports `extends` and `imports` for vendor-specific or industry overlays.
 
-In short, Gemara already has the right *shape*; what is missing is a profile that constrains `#Capability` to express PARC semantics, plus conventions for organizing the surrounding artifacts.
+In short, Gemara already has the right *shape*; what is missing is a profile that constrains `#Capability` to carry a well-typed **(action, resource)** capability identity, plus conventions for organizing controls and evidence around that inventory — without conflating the catalog with the PARC request envelope.
 
 ### 2.4 The conceptual leap: from policy assertions to provable claims
 
@@ -74,9 +79,11 @@ GRC frameworks today express requirements as **assertions about configuration**:
 
 Compliance is then attested by an auditor checking that an MFA toggle is on. That tells us the *control is present*; it does not tell us the *control is sufficient*.
 
-GovOps + Gemara can elevate the standard. With a PARC-shaped capability catalog and a deployed policy artifact, the same requirement can be expressed as a **claim about the deployed authorization surface**:
+GovOps + Gemara can elevate the standard. With a **(action, resource)** capability catalog and a deployed policy artifact, the same requirement can be expressed as a **claim about the deployed authorization surface**:
 
-> "There exists no satisfiable authorization state in which capability `payments:transfer:bank-account` succeeds and `context.acr` is not `urn:mfa`."
+> "There exists no satisfiable authorization state in which capability `payments:transfer:bank-account` (the pair **transfer** on **BankAccount**) may be permitted and `context.acr` is not `urn:mfa`."
+
+That claim is stated over **requests** (PARC-shaped evaluations for that action and resource); the **capability** in the catalog remains only **transfer / BankAccount**.
 
 That claim is checkable. Modern policy decision points expose symbolic analyzers (SAT/SMT-based) that can produce a decision proof: either an UNSAT certificate (the requirement holds for every reachable state) or a satisfying assignment (a counterexample showing how the requirement could be violated). The same proof shape works whether the engine is Cedar, Rego (with an SMT backend), or a graph engine reduced to a constraint problem.
 
@@ -88,13 +95,14 @@ The TIGER metric (§9) measures the fraction of declared requirements for which 
 
 | Term | Meaning |
 |---|---|
-| **Principal** | The actor making an authorization request: human user, service identity, or autonomous agent. Carries attributes such as roles, identity assurance level, and group memberships. |
-| **Action** | A verb naming the operation to be performed (e.g., `read`, `create`, `delete`, `transfer`, `assume`). |
-| **Resource** | A typed noun naming what the action operates on (e.g., `Invoice`, `BankAccount`, `Repository`, `PolicyDocument`). The catalog records the *type*; runtime decisions resolve to specific instances. |
-| **Context** | Environmental attributes that scope the request: time, IP, MFA state, device posture, approval count, geo, etc. |
-| **PARC** | The 4-tuple (Principal, Action, Resource, Context) used as the canonical request shape by OpenID AuthZEN-conformant PDPs and as the canonical capability-declaration shape in this design. |
-| **Enterprise Capability** | A reviewable unit of authorization: a PARC type signature plus governance metadata (sensitivity, risk tier, owner). |
-| **TIGER** | Five governance pillars used by this design: **T**ransparency, **I**dentity, **G**overnance, **E**vents, **R**esilience. Also the name of the derived metric defined in §9. |
+| **Capability** | An **(action, resource)** pair: a discrete, nameable operation on a resource type. This matches the capabilities-first / TBAC framing in Schwartz's articles — *what* can be done on *what*, independent of *who* is asking ([Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9)). A capability is **not** a principal and **not** a context tuple. |
+| **Principal** | The actor supplied in a **PARC authorization request** when the PDP is asked whether an operation is permitted. Policy may use principal attributes; the principal does not define the capability. |
+| **Action** | The verb half of a capability (e.g., `read`, `create`, `delete`, `transfer`, `assume`). |
+| **Resource** | The noun half of a capability: the resource **type** the action applies to (e.g., `Invoice`, `BankAccount`, `Repository`, `PolicyDocument`). The catalog records the *type*; runtime requests identify specific instances. |
+| **Context** | Attributes bundled with a **PARC request** (time, IP, step-up evidence, approval counts, device posture, etc.). Context answers *whether* a capability may be exercised in this invocation; it is not part of the capability identity. |
+| **PARC** | Principal, Action, Resource, Context — the OpenID AuthZEN **authorization request** shape. Used at the PDP boundary; **not** synonymous with "capability." |
+| **Enterprise capability** | A Gemara catalog entry whose **identity** is an **(action, resource)** pair (plus `id`, `title`, `description`, `group` per `#Capability`). Optional fields may document risk, sensitivity, or **expected** policy preconditions; those extensions do not redefine the capability. |
+| **TIGER** | Five governance pillars used by this design: **T**ransparency, **I**ntegrity (of request context and evidence — not "identity" of the subject), **G**overnance, **E**vents, **R**esilience. Also the name of the derived metric defined in §9. |
 | **Provable claim** | A requirement expressed in a form checkable by a policy analyzer, such that the deployed policy either admits a proof of the claim (e.g., UNSAT for a counterexample formula) or yields a counterexample. |
 
 ---
@@ -105,7 +113,7 @@ The TIGER metric (§9) measures the fraction of declared requirements for which 
 
 1. **Reuse, do not replace.** Build on Gemara's existing `#CapabilityCatalog`, `#ControlCatalog`, and mapping primitives. No fork.
 2. **Additive schema only.** Any extension must be expressible as a CUE refinement that still validates as a `#Capability`.
-3. **Engine-neutral via PARC.** Capability declarations describe PARC type signatures and SHOULD NOT privilege any specific policy engine, policy store strategy, or authorization API.
+3. **Engine-neutral capabilities and PARC-shaped requests.** Capability rows in the catalog are **(action, resource)** only. Interoperability with PDPs uses **PARC** as the standard **request** envelope at evaluation time. The design MUST NOT privilege any specific policy engine, policy store strategy, or authorization API.
 4. **Provable claims first-class.** The design records not only declarative requirements but also the proof artifacts that show the deployed authorization surface satisfies them.
 5. **GRC-aligned.** Each capability and each control can be mapped to entries in NIST 800-53, ISO 27001, SOC 2 via `#MappingDocument`.
 6. **Reviewable.** The catalog is the canonical input to GovOps access review, coverage, risk, and TIGER metrics.
@@ -129,7 +137,7 @@ govops/
   metadata.yaml                      # shared metadata fragments
   GovOps-AC.yaml                     # #CapabilityCatalog (Enterprise Capability Profile)
   GovOps-Transparency.yaml           # #ControlCatalog (T)
-  GovOps-Identity.yaml               # #ControlCatalog (I)
+  GovOps-Integrity.yaml             # #ControlCatalog (I — request context / evidence integrity)
   GovOps-Governance.yaml             # #ControlCatalog (G)
   GovOps-Events.yaml                 # #ControlCatalog (E)
   GovOps-Resilience.yaml             # #ControlCatalog (R)
@@ -195,7 +203,7 @@ Use the existing `#Capability` fields and encode the structured payload in `id` 
 
 - `id` MUST follow the form `<service>:<action>:<resource>` (e.g., `payments:transfer:bank-account`).
 - `title` is the human label.
-- `description` MUST contain a YAML front-matter block with the structured PARC fields.
+- `description` MUST contain a YAML front-matter block. **Only `action` and `resource` are required** — they are the **capability identity**. Any other keys are optional **catalog documentation** (risk tier, sensitivity, expected context for policy reviewers, typical caller classes in requests, etc.) and **do not** redefine the capability.
 
 ```yaml
 - id: payments:transfer:bank-account
@@ -203,14 +211,15 @@ Use the existing `#Capability` fields and encode the structured payload in `id` 
   group: g.payments
   description: |
     ---
-    principal-types: [User, Service]
     action: Transfer
     resource: BankAccount
-    context-predicates:
-      - id: c.mfa
-        text: "Strong authentication required"
-        expression: "context.acr == 'urn:mfa'"
-        expression-language: natural-language
+    documentation:
+      typical-requester-classes: [interactive-subject, software-agent]
+      expected-context:
+        - id: c.mfa
+          text: "Policy MUST require strong authentication evidence in context"
+          expression: "context.acr == 'urn:mfa'"
+          expression-language: natural-language
     data-sensitivity: confidential
     risk-tier: critical
     ---
@@ -228,27 +237,24 @@ Introduce `#EnterpriseCapability` as an embedding of `#Capability`. The CUE defi
 @status("experimental")
 package gemara
 
-// EnterpriseCapability is a Capability whose semantics are a PARC
-// (Principal, Action, Resource, Context) type signature describing
-// a class of authorization requests the enterprise authorizes.
+// EnterpriseCapability is a Capability whose identity is the pair
+// (action, resource). Optional fields document risk, sensitivity, or
+// expected PDP / policy context — they are NOT part of the capability.
 #EnterpriseCapability: {
     #Capability
 
-    // principal-types enumerates the principal kinds permitted to
-    // hold this capability (e.g., "User", "Service", "Agent").
-    "principal-types"?: [string, ...string] @go(PrincipalTypes)
-
-    // action is a verb naming the authorizable operation.
-    // SHOULD be drawn from the catalog's lexicon for consistency.
-    action: string
-
-    // resource is the resource type the action operates on.
-    // SHOULD be drawn from the catalog's lexicon.
+    // action + resource together ARE the capability (TBAC / registry sense).
+    action:   string
     resource: string
 
-    // context-predicates enumerates predicates over the request
-    // context that MUST hold for the action to be allowed.
-    "context-predicates"?: [#ContextPredicate, ...#ContextPredicate] @go(ContextPredicates)
+    // Optional: documented classes of requester often seen in PARC requests
+    // for this capability (policy-engine subject kinds).
+    // Does NOT define the capability; policy may allow a wider or narrower set.
+    "documented-requester-classes"?: [string, ...string] @go(DocumentedRequesterClasses)
+
+    // Optional: documented expectations on PARC Context for policy reviewers.
+    // Does NOT define the capability; actual enforcement is in deployed policy.
+    "documented-context-expectations"?: [#ContextPredicate, ...#ContextPredicate] @go(DocumentedContextExpectations)
 
     // data-sensitivity classifies the data exposed by the action.
     // Values SHOULD come from an applicability-group named "sensitivity".
@@ -257,14 +263,13 @@ package gemara
     // risk-tier is a coarse risk classification used by GovOps metrics.
     "risk-tier"?: "low" | "medium" | "high" | "critical" @go(RiskTier)
 
-    // engine-bindings records non-normative engine-specific identifiers.
-    // The catalog itself remains engine-neutral; bindings exist so
-    // implementations can correlate this PARC entry to the symbols
-    // used by their PDP, IAM service, or graph engine.
+    // engine-bindings correlate this (action, resource) capability to
+    // engine-specific symbols. Optional; does not change capability identity.
     "engine-bindings"?: [#EngineBinding, ...#EngineBinding] @go(EngineBindings)
 }
 
-// ContextPredicate captures one predicate over the PARC Context.
+// ContextPredicate documents an expectation on PARC Context for reviewers
+// or linters. Enforcement remains in policy, not in the capability row.
 #ContextPredicate: {
     id:   string
     text: string
@@ -275,7 +280,7 @@ package gemara
     "expression-language"?: string
 }
 
-// EngineBinding correlates this PARC entry with engine-specific symbols.
+// EngineBinding correlates this capability with engine-specific symbols.
 // Listed engines are illustrative; the field is open to any string.
 #EngineBinding: {
     engine: string
@@ -290,13 +295,13 @@ package gemara
 }
 ```
 
-The top-level fields (`principal-types`, `action`, `resource`, `context-predicates`) ARE the PARC type signature; nothing about the shape is engine-specific. Engine-specific symbols live in the optional `engine-bindings` array, which any number of engines can populate.
+The **normative** fields that define what is being governed are **`action` and `resource`** only. Everything else is optional documentation, risk metadata, or engine correlation. That separation keeps the catalog aligned with a **capabilities registry** ([The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f)) and avoids collapsing "capability" into a full PARC tuple.
 
 ### 6.3 Catalog organization with `#Group`
 
 `#Group` (post ADR-0020) is the single grouping primitive. Use it for **service** or **domain**:
 
-- `groups`: one entry per service or business domain (e.g., `payments`, `identity`, `governance`, `release-engineering`).
+- `groups`: one entry per service or business domain (e.g., `payments`, `iam`, `governance`, `release-engineering`).
 - Each `#EnterpriseCapability.group` references a group `id`.
 
 Use `metadata.applicability-groups` for orthogonal classifications that drive metrics:
@@ -304,7 +309,7 @@ Use `metadata.applicability-groups` for orthogonal classifications that drive me
 - **Sensitivity** — `public`, `internal`, `confidential`, `pii`, `regulated`.
 - **Risk tier** — `low`, `medium`, `high`, `critical`.
 - **Lifecycle stage** — `design-time`, `build-time`, `deploy-time`, `runtime`.
-- **Audience** — `human-only`, `service-only`, `mixed`, `agent-eligible`.
+- **Invocation profile** — `interactive-subject`, `software-only`, `mixed` (optional catalog metadata describing how the capability is usually invoked; does not change the (action, resource) identity).
 
 These groups become the dimensions for GovOps metrics: *"What high-impact capabilities exist? Which are weakly governed?"* (GovOps Objective #5).
 
@@ -334,14 +339,14 @@ The `metadata.lexicon` field on the `#CapabilityCatalog` already points at this 
 
 ### 6.5 Relationship to Gemara's existing `#Resource`
 
-Gemara already defines `#Resource` (in `entities.cue`) as a runtime entity that is the *target of an evaluation* — the thing an `#EvaluationLog`, `#EnforcementLog`, or `#AuditLog` is *about*. That is **not** the same as the PARC `Resource` type used inside an enterprise capability.
+Gemara already defines `#Resource` (in `entities.cue`) as a runtime entity that is the *target of an evaluation* — the thing an `#EvaluationLog`, `#EnforcementLog`, or `#AuditLog` is *about*. That is **not** the same as the **resource type** half of an **(action, resource)** capability row in the catalog.
 
 The two stay separate:
 
-- `#EnterpriseCapability.resource` is a **type name** drawn from the lexicon (e.g., `BankAccount`).
+- `#EnterpriseCapability.resource` is the **resource type** half of the capability (e.g., `BankAccount`).
 - `#Resource` (entities) is a **runtime instance** being evaluated (e.g., the production payments service running v1.4.2).
 
-A measurement record carries both: the `target` of an evaluation log is a `#Resource`; what was *evaluated about it* is the conformance of its policies to a set of `#EnterpriseCapability` entries.
+A measurement record carries both: the `target` of an evaluation log is a `#Resource`; what was *evaluated about it* is the conformance of its policies to a set of `#EnterpriseCapability` entries (each keyed by **action + resource**).
 
 ### 6.6 Threats and risks over capabilities
 
@@ -393,8 +398,8 @@ controls:
       - id: GOVOPS-TR-01.01
         text: >
           Every capability with risk-tier >= high MUST produce a signed decision record
-          containing principal id, action, resource id, deciding policy id, and the
-          context attributes the decision relied on.
+          containing the PARC Principal identifier, action, resource instance identifier,
+          deciding policy id, and the context attributes the decision relied on.
         applicability: [production]
         state: Active
       - id: GOVOPS-TR-01.02
@@ -407,40 +412,45 @@ controls:
 
 Evidence sources: PDP decision logs, AuthZEN evaluate response reasons, append-only event stores, attestations from the policy distribution pipeline.
 
-### 7.2 `GovOps-Identity.yaml`
+### 7.2 `GovOps-Integrity.yaml`
 
-Identity requires that high-impact capabilities are unreachable under weak identity assurance. The novel framing is **mathematical impossibility, not configuration presence**.
+The **Integrity** pillar governs **evidence and context integrity** for decisions over catalog capabilities — for example, that high-risk **(action, resource)** pairs cannot be permitted unless the **PARC Context** (and token-derived evidence Schwartz describes in TBAC) satisfies documented assurance requirements. The novel framing is **mathematical impossibility, not configuration presence**.
 
 ```yaml
-title: GovOps Identity Catalog
+title: GovOps Integrity Catalog
 metadata:
-  id: cat.govops.identity
+  id: cat.govops.integrity
   type: ControlCatalog
   gemara-version: "0.x"
-  description: Sensitive capabilities are unreachable without sufficient identity assurance.
+  description: >
+    Request context and evidence for PARC evaluations over catalog capabilities
+    meet documented assurance requirements.
   author: { id: govops-wg, name: GovOps WG, type: Software Assisted }
 groups:
-  - id: g.id
-    title: Identity
-    description: Identity assurance preconditions on capabilities.
+  - id: g.int
+    title: Integrity
+    description: Context and evidence preconditions on authorization requests.
 controls:
-  - id: GOVOPS-ID-01
-    title: Sensitive capabilities require strong authentication
-    objective: No authorization path exists in which a sensitive capability succeeds without strong authentication.
-    group: g.id
+  - id: GOVOPS-INT-01
+    title: Sensitive capabilities require strong authentication evidence in context
+    objective: >
+      No authorization path exists in which a sensitive (action, resource) capability
+      is permitted unless the PARC request carries sufficient authentication evidence.
+    group: g.int
     state: Active
     assessment-requirements:
-      - id: GOVOPS-ID-01.01
+      - id: GOVOPS-INT-01.01
         text: >
           For every capability with data-sensitivity in {confidential, pii, regulated}
           OR risk-tier >= high, the deployed policy MUST require an authentication
-          context class reference (acr) of urn:mfa or stronger.
+          context class reference (acr) of urn:mfa or stronger on the PARC Context
+          when permitting that action on that resource.
         applicability: [production]
         state: Active
-      - id: GOVOPS-ID-01.02
+      - id: GOVOPS-INT-01.02
         text: >
           A symbolic analysis of the deployed policy MUST yield UNSAT for the
-          formula: capability succeeds AND principal.acr != urn:mfa.
+          formula: Permit on (action=transfer, resource=BankAccount) AND context.acr != urn:mfa.
         applicability: [production]
         state: Active
 ```
@@ -449,7 +459,7 @@ Note the difference between `01.01` and `01.02`: the first checks that a configu
 
 ### 7.3 `GovOps-Governance.yaml`
 
-Governance governs *who can govern* — separation of duties, dual control, time-bounded overrides, change approval.
+Governance governs **authority over governance artifacts** — separation of duties, dual control, time-bounded overrides, change approval.
 
 ```yaml
 title: GovOps Governance Catalog
@@ -466,7 +476,7 @@ groups:
 controls:
   - id: GOVOPS-GV-01
     title: Governance changes require separation of duties
-    objective: No single principal can unilaterally modify governance policy.
+    objective: No single party can unilaterally modify governance policy.
     group: g.gv
     state: Active
     assessment-requirements:
@@ -571,11 +581,11 @@ A central design idea is that `#AssessmentRequirement`s come in two flavors and 
 1. **Configuration assertions.** *"Capability X requires MFA in policy."* Verified by inspecting deployed policy or runtime decision logs.
 2. **Provable claims.** *"There exists no satisfiable authorization state in which X succeeds without MFA."* Verified by feeding the deployed policy to a symbolic analyzer and recording the resulting proof or counterexample.
 
-Both kinds of requirement live in the TIGER pillar catalogs. The GovOps repository convention is that the *assessment-requirement text* is engine-neutral (refers to the catalog, the PARC fields, and predicates over context attributes), while the *evidence and proofs* in `evidence/` and `proofs/` are produced by whatever PDP is deployed.
+Both kinds of requirement live in the TIGER pillar catalogs. The GovOps repository convention is that the *assessment-requirement text* is engine-neutral (refers to catalog **(action, resource)** capability ids, **PARC Context** in authorization requests, and deployed policy), while the *evidence and proofs* in `evidence/` and `proofs/` are produced by whatever PDP is deployed.
 
 ### 8.1 Engine-neutral statement of a provable claim
 
-A provable claim names: a capability id, a property to prove (or refute) about its PARC envelope, and an analyzer attestation. The same statement is meaningful for any PDP class:
+A provable claim names: a capability id (an **(action, resource)** pair), a property to prove (or refute) about **PARC-shaped authorization requests** or policy closure for that pair, and an analyzer attestation. The same statement is meaningful for any PDP class:
 
 | PDP class | How the claim is discharged |
 |---|---|
@@ -606,7 +616,7 @@ GovOps does not require every requirement to be provable. Many TIGER requirement
 
 ## 9. The TIGER metric
 
-TIGER is the **delta between declared governance requirements and provable operational reality** across five pillars: Transparency, Identity, Governance, Events, Resilience.
+TIGER is the **delta between declared governance requirements and provable operational reality** across five pillars: Transparency, Integrity, Governance, Events, Resilience.
 
 ### 9.1 Per-pillar score
 
@@ -632,7 +642,7 @@ Where:
 TIGER = w_T * score(T) + w_I * score(I) + w_G * score(G) + w_E * score(E) + w_R * score(R)
 ```
 
-Default pillar weights (illustrative; organizations may re-weight): `T=20, I=25, G=20, E=15, R=20`. The Identity pillar is weighted slightly higher by default because identity preconditions tend to dominate other pillars in measurable risk reduction; other organizations will prefer different defaults.
+Default pillar weights (illustrative; organizations may re-weight): `T=20, I=25, G=20, E=15, R=20`. The **Integrity** pillar is weighted slightly higher by default because context-and-evidence preconditions on **PARC requests** for high-risk **(action, resource)** capabilities tend to dominate measurable risk reduction; other organizations will prefer different defaults.
 
 ### 9.3 What TIGER measures and what it does not
 
@@ -646,7 +656,7 @@ TIGER does *not* measure:
 
 - Adversarial robustness against unmodeled attacks.
 - Quality of the catalog itself (an under-specified catalog can yield a high TIGER by trivial controls).
-- Anything about identity or workforce administration that is not expressed as a capability requirement.
+- Workforce administration or HR identity lifecycle except where it surfaces as **PARC Context** evidence in authorization requests.
 
 These are appropriate concerns for adjacent metrics (vulnerability disclosure, IGA recertification cadence, etc.), not TIGER.
 
@@ -692,7 +702,7 @@ metadata:
   gemara-version: "0.x"
   version: "2026.1"
   date: "2026-05-01T00:00:00Z"
-  description: Authorizable PARC tuples across Acme services.
+  description: (action, resource) capabilities across Acme services.
   author:
     id: acme-platform-security
     name: Acme Platform Security
@@ -710,9 +720,9 @@ groups:
   - id: g.payments
     title: Payments
     description: Capabilities exposed by the payments domain.
-  - id: g.identity
-    title: Identity
-    description: Capabilities exposed by the identity control plane.
+  - id: g.iam
+    title: IAM
+    description: Capabilities exposed by the IAM control plane.
   - id: g.governance
     title: Governance
     description: Capabilities exposed by the governance plane itself.
@@ -721,9 +731,10 @@ capabilities:
     title: Read invoice
     description: Retrieve an existing Invoice by id.
     group: g.payments
-    principal-types: [User, Service, Agent]
     action: read
     resource: Invoice
+    documentation:
+      typical-requester-classes: [interactive-subject, software-agent, autonomous-actor]
     data-sensitivity: pii
     risk-tier: medium
 
@@ -731,14 +742,15 @@ capabilities:
     title: Transfer funds
     description: Initiate a funds transfer between bank accounts.
     group: g.payments
-    principal-types: [User, Service]
     action: transfer
     resource: BankAccount
-    context-predicates:
-      - id: c.mfa
-        text: Strong authentication required
-        expression: "context.acr == 'urn:mfa'"
-        expression-language: natural-language
+    documentation:
+      typical-requester-classes: [interactive-subject, software-agent]
+      expected-context:
+        - id: c.mfa
+          text: Policy MUST require strong authentication evidence in PARC Context
+          expression: "context.acr == 'urn:mfa'"
+          expression-language: natural-language
     data-sensitivity: confidential
     risk-tier: critical
 
@@ -746,29 +758,30 @@ capabilities:
     title: Modify governance policy
     description: Edit any policy in the GovOps repository.
     group: g.governance
-    principal-types: [User]
     action: policy-write
     resource: GovernancePolicy
-    context-predicates:
-      - id: c.approvals
-        text: Two distinct approvers required
-        expression: "size(context.approvals) >= 2 && distinct(context.approvals)"
-        expression-language: natural-language
+    documentation:
+      typical-requester-classes: [interactive-subject]
+      expected-context:
+        - id: c.approvals
+          text: Two distinct approvers required in PARC Context
+          expression: "size(context.approvals) >= 2 && distinct(context.approvals)"
+          expression-language: natural-language
     risk-tier: critical
 ```
 
-### 10.2 The Identity pillar control that governs the transfer capability
+### 10.2 The Integrity pillar control that governs the transfer capability
 
-Already shown as `GOVOPS-ID-01` in §7.2. The control's threats reference the relevant `#Threat` entry (e.g., `t.transfer.fraud`), and the threat's `capabilities` list points back at `payments:transfer:bank-account`.
+Already shown as `GOVOPS-INT-01` in §7.2. The control's threats reference the relevant `#Threat` entry (e.g., `t.transfer.fraud`), and the threat's `capabilities` list points back at `payments:transfer:bank-account` — the **(transfer, BankAccount)** capability, independent of caller.
 
 ### 10.3 An evaluation log recording the proof
 
 ```yaml
 metadata:
-  id: log.acme.ec.identity.2026-05-13
+  id: log.acme.ec.integrity.2026-05-13
   type: EvaluationLog
   gemara-version: "0.x"
-  description: Daily evaluation of GOVOPS-ID-01 against deployed policy.
+  description: Daily evaluation of GOVOPS-INT-01 against deployed policy.
 target:
   id: prod.payments.v1.4.2
   name: Payments service (production)
@@ -776,10 +789,10 @@ target:
   environment: production
 result: Pass
 # Per-requirement evaluation entries (illustrative):
-#   GOVOPS-ID-01.01 -> evidence: DecisionLog stream confirms acr=urn:mfa for all
-#                       observed payments:transfer:bank-account decisions
+#   GOVOPS-INT-01.01 -> evidence: DecisionLog stream confirms context.acr=urn:mfa for all
+#                       observed Permit decisions on action=transfer, resource=BankAccount
 #                       in the reporting window.
-#   GOVOPS-ID-01.02 -> evidence: Proof artifact in proofs/id-01-02-2026-05-13.json,
+#   GOVOPS-INT-01.02 -> evidence: Proof artifact in proofs/int-01-02-2026-05-13.json,
 #                       analyzer attests UNSAT for the negation, signed against
 #                       deployed policy hash sha256:...
 ```
@@ -799,7 +812,7 @@ score:
   R: 0.88
   aggregate: 0.87
 notes: |
-  Identity score reduced because GOVOPS-ID-01.02 holds for payments:transfer:bank-account
+  Integrity pillar score reduced because GOVOPS-INT-01.02 holds for payments:transfer:bank-account
   but the corresponding UNSAT proof is missing for governance:policy-write:governance-policy
   (analyzer pending). Will re-run after analyzer integration completes.
 ```
@@ -813,41 +826,41 @@ The note format is intentional: TIGER tells you not only the score but the speci
 Use Gemara's existing `#MappingDocument` to record how enterprise capabilities and TIGER controls relate to entries in NIST 800-53, ISO 27001, SOC 2, or any other framework. `#EntryType` already includes both `Capability` and `Control`, so mappings work without any schema change:
 
 ```yaml
-title: Enterprise Capability and TIGER Identity Mapping to NIST 800-53r5
+title: Enterprise Capability and TIGER Integrity Mapping to NIST 800-53r5
 metadata:
-  id: map.govops.id.nist80053r5
+  id: map.govops.int.nist80053r5
   type: MappingDocument
   gemara-version: "0.x"
-  description: Map GOVOPS-ID controls and EC entries to NIST 800-53r5 controls.
+  description: Map GOVOPS-INT controls and EC entries to NIST 800-53r5 controls.
   author: { id: govops-wg, name: GovOps WG, type: Software Assisted }
   mapping-references:
     - id: ec
       title: Acme Enterprise Capability Catalog
       version: "2026.1"
       url: https://acme.example/catalogs/ec.yaml
-    - id: govops-id
-      title: GovOps Identity Catalog
+    - id: govops-int
+      title: GovOps Integrity Catalog
       version: "0.1"
-      url: https://acme.example/catalogs/govops-identity.yaml
+      url: https://acme.example/catalogs/govops-integrity.yaml
     - id: nist80053r5
       title: NIST SP 800-53 Rev. 5
       version: "5.1.1"
 source-reference:
-  reference-id: govops-id
+  reference-id: govops-int
   entry-type: Control
 target-reference:
   reference-id: nist80053r5
   entry-type: Control
 mappings:
   - id: m1
-    source: GOVOPS-ID-01
+    source: GOVOPS-INT-01
     relationship: implements
     targets:
       - entry-id: AC-3
         rationale: "Access enforcement on sensitive capabilities."
         confidence-level: High
       - entry-id: IA-2(1)
-        rationale: "MFA required for privileged actions."
+        rationale: "Strong authentication evidence required in request context for privileged (action, resource) pairs."
 ```
 
 GovOps Objective #5 ("policy coverage matches risk exposure") becomes a query: *"Which capabilities at risk-tier >= high lack a TIGER control that is mapped (via implements/supports) to AC-3 in NIST or A.5.15 in ISO 27001?"*
@@ -885,9 +898,9 @@ The toolchain is engine-pluggable: each `govops prove` plug-in calls a specific 
 
 ## 14. Open questions
 
-1. **Granularity of `resource`.** Is `resource` always a *type* (e.g., `Invoice`), or can it sometimes be a *resource pattern* (e.g., `Invoice in tenant=X`)? This proposal treats patterns as `context-predicates`, but graph-style engines admit hierarchies natively — should the profile model them?
+1. **Granularity of `resource`.** Is `resource` always a *type* (e.g., `Invoice`), or can it sometimes be a *resource pattern* (e.g., `Invoice in tenant=X`)? This proposal treats patterns as **PARC Context** or policy constraints, but graph-style engines admit hierarchies natively — should the profile model them?
 2. **Context predicate normalization.** Storing predicate `expression` as a string is simple but opaque. A normalized AST (CEL-like, engine-independent) would enable cross-engine analysis but adds scope.
-3. **Identity of the principal.** The profile records `principal-types`, not identities. Is that sufficient for the GovOps metrics, or do we need a "principal capability" inverse view?
+3. **Documented requester classes.** Optional `documented-requester-classes` can drift from deployed policy. Should linters treat them as non-authoritative hints only, or require a `#MappingDocument` when they diverge from policy extracts?
 4. **Inheritance and roles.** Should the profile express role to capability mappings, or is that the IGA layer's concern? Current proposal: out of scope for this catalog.
 5. **Versioning of capabilities.** When an enterprise renames or splits a capability, what is the recommended `replaced-by` pattern? `#Control` already has one — should `#EnterpriseCapability` mirror it?
 6. **TIGER weighting.** Default pillar weights and per-control risk weights need community calibration. A weight registry maintained by the WG seems plausible.
@@ -900,12 +913,12 @@ The toolchain is engine-pluggable: each `govops prove` plug-in calls a specific 
 
 Gemara already provides most of what is needed to govern enterprise capabilities: a stable `#CapabilityCatalog`, a stable `#ControlCatalog` and `#AssessmentRequirement`, mapping primitives that include `Capability` as an `EntryType`, a `#Lexicon`, and the layered Threat/Control/Policy/Log machinery. The remaining work is:
 
-- **A PARC-shaped Enterprise Capability Profile** of `#Capability`, engine-neutral by construction.
+- **An Enterprise Capability Profile** of `#Capability` whose **identity** is **(action, resource)** — engine-neutral, aligned with a capabilities-first / TBAC registry ([The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f)), with **PARC** reserved for **authorization requests** at the PDP boundary (OpenID AuthZEN), not conflated with the capability tuple.
 - **A repository convention** that pairs the capability catalog with five TIGER pillar `#ControlCatalog`s.
 - **A discipline of provable claims** alongside conventional configuration assertions, recorded in `#EvaluationLog` evidence entries.
 - **A TIGER metric** that measures the fraction of declared requirements that are demonstrably true of the deployed authorization surface.
 
-Together they make "GovOps" a measurable, vendor-neutral practice rather than a slogan: the *thing being governed* (the PARC capability surface) is catalogued, the *requirements over it* are organized into TIGER pillars, and the *assurance* that those requirements hold is either runtime-observed or symbolically proved — with the proof artifact preserved alongside the catalog as a first-class governance asset.
+Together they make "GovOps" a measurable, vendor-neutral practice rather than a slogan: the *thing being governed* is the inventory of **(action, resource)** capabilities; the *requirements over them* are organized into TIGER pillars; and the *assurance* that those requirements hold is either runtime-observed or symbolically proved over **PARC-shaped requests** and deployed policy — with the proof artifact preserved alongside the catalog as a first-class governance asset.
 
 ---
 
@@ -914,5 +927,6 @@ Together they make "GovOps" a measurable, vendor-neutral practice rather than a 
 - Gemara — `capabilitycatalog.cue` (stable), `controlcatalog.cue` (stable), `mapping_inline.cue`, `mappingdocument.cue`, `lexicon.cue`, `entities.cue`, `threatcatalog.cue`, `evaluationlog.cue`.
 - Gemara ADRs — 0017 (Base Catalog Type), 0018 (Promote Nested Concepts to Catalogs), 0019 (Promote Capabilities), 0020 (Groups), 0021 (Lexicon).
 - OpenSSF GovOps WG proposal — `orbit/openssf-wg-proposal.md` (this repository).
-- OpenID AuthZEN — Authorization API specification using the PARC request shape.
+- OpenID AuthZEN — Authorization API specification using the PARC **request** shape.
+- Mike Schwartz (Gluu Federation) — capability-based access control and TBAC on Medium: [Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Capabilities = Risk](https://gluufederation.medium.com/capabilities-risk-rethinking-modern-enterprise-access-control-6ca839a9ed72), [Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9), [Permission ↔ Capability](https://gluufederation.medium.com/permission-capability-57a1c4547eff), [The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f).
 - NIST SP 800-53 r5, ISO/IEC 27001, SOC 2 — example mapping targets for `#MappingDocument`.

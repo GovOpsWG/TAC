@@ -10,25 +10,30 @@
 
 **Charter section to amend:** §3 *Technical Initiatives*, *Active Technical Initiatives* table
 
+**Related:**
+- GovOps Phase 1 technical design — [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md)
+- Capability-based access control (Mike Schwartz, Gluu Federation on Medium): [Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9), [Permission ↔ Capability](https://gluufederation.medium.com/permission-capability-57a1c4547eff), [Capabilities = Risk](https://gluufederation.medium.com/capabilities-risk-rethinking-modern-enterprise-access-control-6ca839a9ed72), [The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f)
+- OpenID AuthZEN — PARC (Principal, Action, Resource, Context) **authorization request** shape
+
 ---
 
 ## 1. One-page summary
 
-The **GovOps Initiative** develops interoperable, vendor-neutral Gemara artifacts and tooling for the **continuous, measurable governance of software authorization**. GovOps takes a **capability-based** approach: the unit of governance is the **(action, resource) capability**, not the identity that requests it. The discipline GovOps formalizes is treating *whether a given action on a given resource is allowed under specified context and supporting evidence* as a first-class, machine-readable governance domain.
+The **GovOps Initiative** develops interoperable, vendor-neutral Gemara artifacts and tooling for the **continuous, measurable governance of software authorization**. GovOps takes a **capability-based** approach aligned with Schwartz's TBAC / capabilities-first framing ([Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f)): the **unit of governance in the catalog** is the **(action, resource)** pair — the capability — not the requester and not the ambient context. The discipline GovOps formalizes is treating *whether a given action on a given resource may be permitted under deployed policy, given PARC Context and supporting evidence in authorization requests* as a first-class, machine-readable governance domain.
 
-GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization Capability Catalog (ACC)** — a Gemara-based way to inventory the authorization surface of an enterprise or open-source project as a finite set of **(action, resource) capabilities**, each carrying the context and evidence predicates that must hold for the action to be allowed. Subsequent phases will extend the same artifact substrate into adjacent governance concerns (see §4.2).
+GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization Capability Catalog (ACC)** — a Gemara-based way to inventory the authorization surface as a finite set of **(action, resource)** capabilities. **Conditions** on when an action on a resource is allowed are expressed in **TIGER pillar `#ControlCatalog`s** and in **deployed policy**; the design document optionally allows **non-normative catalog documentation** (e.g., expected PARC Context) for reviewers — that documentation does **not** redefine the capability identity. Subsequent phases extend the same artifact substrate into adjacent governance concerns (see §4.2).
 
 In one sentence: GovOps is to **authorization governance** what OSPS Baseline is to **project security baselines** — a maintainer-friendly catalog plus an enterprise-grade overlay, both expressed as Gemara schema, both consumable by ORBIT tooling.
 
 The Phase 1 (ACC) deliverables are all expressed as existing Gemara artifact types so they require no Gemara schema changes to begin:
 
-1. An **Enterprise Capability Profile** of `#Capability` — a Gemara `#CapabilityCatalog` whose entries are (action, resource) capabilities, each carrying the context and evidence predicates required for the action to be allowed.
-2. A small family of **TIGER pillar `#ControlCatalog` templates** — Transparency, Integrity, Governance, Events, Resilience — that express requirements over a capability catalog. (Each pillar names a property of capabilities and their request context, not a property of any requester.)
+1. An **Enterprise Capability Profile** of `#Capability` — a Gemara `#CapabilityCatalog` whose entries identify capabilities by **`action` and `resource` only** (plus Gemara `#Capability` metadata such as `id`, `title`, `description`, `group`). Optional fields document risk, sensitivity, or expected request context for tooling; see the design document.
+2. A small family of **TIGER pillar `#ControlCatalog` templates** — Transparency, Integrity, Governance, Events, Resilience — that express requirements over a capability catalog. (Pillar controls govern **when** an **(action, resource)** may be permitted — policy, evidence, and operations — without redefining capability identity.)
 3. **`#MappingDocument` artifacts** linking ACC content to OSPS Baseline, NIST 800-53, ISO 27001, and SOC 2.
 
 A working design document for Phase 1 already exists in this repository: [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md). It is the technical basis for this proposal.
 
-GovOps Phase 1 is engine-neutral by construction. The catalog itself is organized around the **(action, resource) capability** — that is the unit governance acts on. At runtime, decisions over the catalog are *requested* in the **PARC** (Principal, Action, Resource, Context) envelope standardized by OpenID AuthZEN, which every PDP class — policy-language, graph, ABAC, RBAC, hybrid — already speaks. PARC describes how a decision is *asked for*; the catalog describes what is *governed*. The catalog therefore travels across implementations without privileging any one vendor.
+GovOps Phase 1 is authorization engine-neutral by construction. The catalog itself is organized around the **(action, resource) capability** — that is the unit governance acts on. At runtime, decisions over the catalog are *requested* in the **PARC** (Principal, Action, Resource, Context) envelope standardized by OpenID AuthZEN, which every PDP class — policy-language, graph, ABAC, RBAC, hybrid — already speaks. PARC describes how a decision is *asked for*; the catalog describes what is *governed*. The catalog therefore travels across implementations without privileging any one vendor.
 
 ---
 
@@ -38,7 +43,7 @@ ORBIT's mission per CHARTER.md §1.a is *"to develop and maintain interoperable 
 
 Today the authorization surface is most often catalogued indirectly — through entitlement rows, role assignments, group memberships, or hard-coded engine-specific policy strings — with no standard structure for *identifying* the surface itself (what actions on what resources can be requested) or *presenting* the conditions under which those actions are allowed. The result is that governance asks the wrong question first ("who can do what?") and only later struggles back to the question that actually scales ("is this action on this resource allowed under this context and evidence?").
 
-GovOps inverts the order. It catalogues the authorization surface as **capabilities** — (action, resource) pairs — and then governs the conditions over those capabilities, independent of who is requesting them. Specifically, GovOps:
+GovOps inverts the order. It catalogues the authorization surface as **capabilities** — **(action, resource)** pairs — and governs **when** those pairs may be permitted using **controls**, **policy**, and **PARC Context** in runtime requests. The catalog is therefore independent of any particular authorization request. Specifically, GovOps:
 
 - Makes the authorization surface **identifiable** as a finite, addressable set of capability ids.
 - Makes it **presentable** as Gemara YAML/JSON validatable against a stable schema.
@@ -58,19 +63,19 @@ The initiative is structured as a multi-phase effort. **Phase 1 (year 1)** deliv
 
 ### 3.2 Phase 1 — In scope (year 1)
 
-- Definition and stewardship of an **Enterprise Capability Profile** (EC Profile) of Gemara's stable `#Capability` — first as a convention-only profile against today's schema, then (subject to Gemara TI agreement) upstreamed as `#EnterpriseCapability`.
+- Definition and stewardship of an **Enterprise Capability Profile** (EC Profile) of Gemara's stable `#Capability` — capability **identity** = **`action` + `resource`** only (see design document); first as a convention-only profile against today's schema, then (subject to Gemara TI agreement) upstreamed as `#EnterpriseCapability`.
 - Reference content: a **TIGER pillar template pack** (five `#ControlCatalog` files) and at least one **OSS-project-sized template** suitable for the typical maintainer.
 - Reference mapping documents to OSPS Baseline, NIST 800-53, ISO 27001, SOC 2.
 - Validation tooling: `govops lint`, `govops coverage`, `govops drift`. These are thin wrappers over Gemara SDK calls.
 - Conformance criteria for ACC catalogs (what makes a catalog "ACC-conformant").
-- Liaison with adjacent groups (OpenID AuthZEN for PARC, Gemara for schema feedback, OSPS for project-grade templates).
+- Liaison with adjacent groups (OpenID AuthZEN for the **PARC request** shape at PDPs, Gemara for schema feedback, OSPS for project-grade templates).
 
 ### 3.3 Out of scope (every phase)
 
 - Defining a new policy language, evaluation API, or policy store specification.
 - Building production authorization engines, IGA systems, or runtime enforcement.
 - Mandating any one PDP, IAM platform, or policy language.
-- Modeling individual permission grants or principal identities — those remain in IGA / IAM / runtime systems.
+- Modeling individual permission grants to specific **runtime requesters** (the PARC Principal in a given request) — those remain in IGA / IAM / runtime systems.
 - Normative work that would duplicate or override Gemara, OSPS Baseline, or Security Insights deliverables.
 
 ### 3.4 Why this scope is non-overlapping with existing TIs
@@ -200,7 +205,7 @@ The proposer's intent is that this ORBIT initiative is the *primary, durable hom
 
 ### 8.2 Anticipated contributors
 
-This proposal builds on the contributor base of the GovOps WG proposal in [`openssf-wg-proposal.md`](./openssf-wg-proposal.md), several of whom have committed to authorship under the GovOps Initiative specifically. The initial contributor list includes IGA practitioners, GRC platform engineers, identity vendors, and OSS authz tooling maintainers. The full list will be confirmed at initiative kickoff per ORBIT custom.
+This proposal builds on the contributor base of the GovOps WG proposal in [`openssf-wg-proposal.md`](./openssf-wg-proposal.md), several of whom have committed to authorship under the GovOps Initiative specifically. The initial contributor list includes IGA practitioners, GRC platform engineers, authorization and identity vendors, and OSS authz tooling maintainers. The full list will be confirmed at initiative kickoff per ORBIT custom.
 
 ### 8.3 Lead succession
 
@@ -255,7 +260,7 @@ Per CHARTER §3.c, future-phase additions (§4.2) that materially expand initiat
 | Risk | Mitigation |
 |---|---|
 | Scope creep — multi-phase framing invites unbounded expansion | §3.3 fixes a hard "out of scope" list that applies to *every* phase. §4.2 future phases enter scope only by explicit TSC review (§10). The proposer commits only to Phase 1 in §4.1. |
-| Scope creep into policy-engine specification | §3.3 explicitly excludes new policy languages and engines. The PARC abstraction is reused, not invented. |
+| Scope creep into policy-engine specification | §3.3 explicitly excludes new policy languages and engines. **PARC** is the OpenID AuthZEN **authorization request** envelope at PDPs; **capability identity** in the catalog remains **(action, resource)** only — the split is specified in the design document. |
 | Perceived overlap with Gemara | The initiative is a *consumer and contributor*, not a competitor. The §5.1 interop description and the planned Gemara ADR contribution make the relationship explicit. The Gemara TI lead is a designated approver. |
 | Perceived overlap with OSPS Baseline | The initiative's control domain (authorization-surface governance) is distinct from OSPS Baseline's project-security-baseline domain. The §5.2 interop is bilateral mapping, not redefinition. |
 | Naming overlap with the proposed GovOps WG | §7 sets a clear scope split (artifacts vs. framework) that mirrors OSPS Baseline / Best Practices WG. The two are explicitly designed to compose; neither blocks the other. |
@@ -275,7 +280,8 @@ Per CHARTER §3.c, future-phase additions (§4.2) that materially expand initiat
 - GovOps Phase 1 (ACC) technical design — [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md) (this repository)
 - GovOps WG proposal (separate, top-level WG) — [`openssf-wg-proposal.md`](./openssf-wg-proposal.md) (this repository)
 - ORBIT Launchpad SIG — [`orbit-wg-launchpad.md`](./orbit-wg-launchpad.md) (this repository)
-- OpenID AuthZEN — PARC authorization request shape
+- OpenID AuthZEN — PARC **authorization request** shape (distinct from **(action, resource)** capability identity in the catalog; see design document).
+- Mike Schwartz (Gluu Federation) — capabilities and TBAC on Medium: [Capabilities Are the New Roles](https://gluufederation.medium.com/capabilities-are-the-new-roles-only-they-actually-work-8cb34b9e81f7), [Entitlements to Capabilities](https://gluufederation.medium.com/entitlements-to-capabilities-744117a710c9), [Permission ↔ Capability](https://gluufederation.medium.com/permission-capability-57a1c4547eff), [Capabilities = Risk](https://gluufederation.medium.com/capabilities-risk-rethinking-modern-enterprise-access-control-6ca839a9ed72), [The TBAC Registry](https://gluufederation.medium.com/the-tbac-registry-an-enterprise-catalog-of-capabilities-and-tokens-911f04ffe26f).
 
 ---
 
