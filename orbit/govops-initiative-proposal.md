@@ -19,7 +19,7 @@
 
 ## 1. One-page summary
 
-The **GovOps Initiative** develops interoperable, vendor-neutral Gemara artifacts and tooling for the **continuous, measurable governance of software authorization**. GovOps takes a **capability-based** approach: the **unit of governance in the catalog** is the **(action, resource)** pair — the capability — not the requester and not the ambient context. In one sentence: GovOps is to **authorization governance** what OSPS Baseline is to **project security baselines** — a maintainer-friendly catalog plus an enterprise-grade overlay, both expressed as Gemara schema, both consumable by ORBIT tooling.
+The **GovOps Initiative** develops interoperable, vendor-neutral Gemara artifacts and tooling for the **continuous, measurable governance of software authorization**. GovOps takes a **capability-based** approach: the **unit of governance in the catalog** is the **(action, resource)** pair — the capability — not the identity of the requester. In one sentence: GovOps is to **authorization governance** what OSPS Baseline is to **project security baselines** — a maintainer-friendly catalog plus an enterprise-grade overlay, both expressed as Gemara schema, both consumable by ORBIT tooling.
 
 GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization Capability Catalog (ACC)** — a Gemara-based way to inventory the authorization surface as a finite set of **(action, resource)** capabilities. 
 
@@ -31,7 +31,7 @@ The Phase 1 (ACC) deliverables are all expressed as existing Gemara artifact typ
 
 A working design document for Phase 1 already exists in this repository: [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md). It is the technical basis for this proposal.
 
-GovOps Phase 1 is authorization engine-neutral by construction. The catalog itself is organized around the **(action, resource) capability** — that is the unit governance acts on. At runtime, decisions over the catalog are *requested* in the **PARC** (Principal, Action, Resource, Context) envelope standardized by OpenID AuthZEN, which every PDP class — policy-language, graph, ABAC, RBAC, hybrid — already speaks. PARC describes how a decision is *asked for*; the catalog describes what is *governed*. The catalog therefore travels across implementations without privileging any one vendor.
+GovOps Phase 1 is authorization engine-neutral by construction. The catalog itself is organized around the **(action, resource) capability** — that is the unit governance acts on. At runtime, decisions over the catalog are *requested* in the **PARC** (Principal, Action, Resource, Context) envelope standardized by OpenID AuthZEN, which many PDPs — policy-language, graph, ABAC, hybrid — already speak. The catalog describes what is *governed*, and must work across implementations without privileging any one vendor.
 
 ---
 
@@ -41,8 +41,9 @@ ORBIT's mission per CHARTER.md §1.a is *"to develop and maintain interoperable 
 
 Today the authorization surface is most often catalogued indirectly — through entitlement rows, role assignments, group memberships, or hard-coded engine-specific policy strings — with no standard structure for *identifying* the surface itself (what actions on what resources can be requested) or *presenting* the conditions under which those actions are allowed. The result is that governance asks the wrong question first ("who can do what?") and only later struggles back to the question that actually scales ("is this action on this resource allowed under this context and evidence?").
 
-GovOps inverts the order. It catalogues the authorization surface as **capabilities** — **(action, resource)** pairs — and governs **when** those pairs may be permitted using **controls**, **policy**, and **PARC Context** in runtime requests. The catalog is therefore independent of any particular authorization request. Specifically, GovOps:
+GovOps inverts the order. It catalogues the authorization surface as **capabilities** — **(action, resource)** pairs. The Capability Catalog does not express **when** those capabilities are permitted--the policies or access control mechanisms may vary based on PDP type. The catalog is therefore independent of any particular authorization implementation. 
 
+Specifically, GovOps:
 - Makes the authorization surface **identifiable** as a finite, addressable set of capability ids.
 - Makes it **presentable** as Gemara YAML/JSON validatable against a stable schema.
 - Makes the requirements over it **interoperable** by expressing them as Gemara `#ControlCatalog` entries with `#MappingDocument` ties to common compliance frameworks.
@@ -111,9 +112,7 @@ All Gemara artifacts are CC-BY-4.0 (per ORBIT charter §7.b.iv). All code is Apa
 Each future phase enters scope only by explicit TSC review per CHARTER §3.c. The list below is illustrative, not committed; it shows the trajectory the initiative anticipates so reviewers can judge fit and longevity.
 
 - **Phase 2 — Provable claims and TIGER metric formalization.** Operationalize the *provable operational claims* discipline outlined in the design document: standardize how a Gemara `#EvaluationLog` carries a `Proof` evidence type, define a per-pillar score function, and ship a reference TIGER score generator. Aligns with GovOps's "make risk measurable and comparable" objective.
-- **Phase 3 — Reference adapters for common engines.** Engine-neutral remains the rule, but practitioners need integration glue. Phase 3 ships read-only adapters that emit ACC-conformant catalogs from common authorization estates (cloud IAM, OPA/Rego corpora, OpenFGA stores, Cedar policies, AuthZEN-conformant PDPs). All adapters are optional and treat their input formats as opaque.
-- **Phase 4 — Sector and industry overlays.** Reusable ACC overlays for high-leverage sectors (financial services, healthcare, public sector) maintained by domain-aligned sub-teams.
-- **Phase 5 — Conformance and assurance program.** A community process for declaring "ACC-conformant" catalogs and for reviewing TIGER score reports; aligned with OSPS Baseline's self-attestation model.
+- **Phase 3 — Reference adapters for common engines.** Engine-neutral remains the rule, but practitioners need integration glue. Phase 3 ships read-only adapters that emit ACC-conformant catalogs from common PDPs (e.g. OPA, Cedar, Zanzibar-style authorization graphs). All adapters are optional and treat their input formats as opaque.
 
 The TSC may add, reorder, or drop any of these. The proposer commits only to the Phase 1 scope in §4.1.
 
@@ -197,9 +196,9 @@ The proposer's intent is that this ORBIT initiative is the *primary, durable hom
 
 ## 8. Lead, contributors, and governance
 
-### 8.1 Proposed lead
+### 8.1 Proposed leads
 
-- **Michael Schwartz** (Gluu) — proposer, co-author of the design document, co-proponent of the GovOps WG. Per CHARTER §3.b, the lead is not a lead on any other ORBIT TI.
+- **Michael Schwartz** (Gluu) and **Rohit Khare** (Independent) — proposers, co-author of the design document, co-proponent of the GovOps WG. Per CHARTER §3.b, the lead is not a lead on any other ORBIT TI.
 
 ### 8.2 Anticipated contributors
 
@@ -211,7 +210,7 @@ Per CHARTER §3.b.ii, the lead may nominate a replacement at any time. We will d
 
 ### 8.4 Meeting cadence
 
-- GovOps Initiative working session: bi-weekly, alternating with GovOps WG meetings (when approved) to allow shared participation without scheduling conflicts.
+- GovOps Initiative working session: bi-weekly.
 - TSC reporting: GovOps Initiative lead attends ORBIT TSC routines per CHARTER §3.b.i.
 
 ### 8.5 Communication channels
