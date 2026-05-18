@@ -26,7 +26,7 @@ GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization
 The Phase 1 (ACC) deliverables are all expressed as existing Gemara artifact types so they require no Gemara schema changes to begin:
 
 1. An **Enterprise Capability Profile** of `#Capability` — a Gemara `#CapabilityCatalog` whose entries identify capabilities by **`action` and `resource` only** (plus Gemara `#Capability` metadata such as `id`, `title`, `description`, `group`). Optional fields document risk, sensitivity, or expected request context for tooling; see the design document.
-2. A small family of **TIGER metric `#ControlCatalog` templates** — used by governors to assess the risk management, accountability, and transparency levels of the authorization governance program. 
+2. A small family of **TIGER metric `#ControlCatalog` templates** — used by governors to assess the risk management, accountability, and transparency levels of the authorization governance program. The **Identity** pillar template (`GovOps-Identity.yaml`) scores **1–5 proficiency** for managing **human**, **software**, and **organizational** principals (IGA, Agama-style orchestration, MFA, PAM; SPIFFE and asymmetric workload auth; third-party and business-unit federation). 
 3. **`#MappingDocument` artifacts** linking ACC content to OSPS Baseline, NIST 800-53, ISO 27001, and SOC 2.
 
 A working design document for Phase 1 already exists in this repository: [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md). It is the technical basis for this proposal.
@@ -262,7 +262,7 @@ Per CHARTER §3.c, future-phase additions (§4.2) that materially expand initiat
 | Perceived overlap with OSPS Baseline | The initiative's control domain (authorization-surface governance) is distinct from OSPS Baseline's project-security-baseline domain. The §5.2 interop is bilateral mapping, not redefinition. |
 | Naming overlap with the proposed GovOps WG | §7 sets a clear scope split (artifacts vs. framework) that mirrors OSPS Baseline / Best Practices WG. The two are explicitly designed to compose; neither blocks the other. |
 | Maintainer burden on small OSS projects | D5 (OSS-project template) is sized for solo maintainers and explicitly minimizes added conformance burden, in alignment with ORBIT Launchpad goals. |
-| TIGER acronym ambiguity | The five-letter TIGER expansion (Transparency, Integrity, Governance, Events, Resilience) is used in this proposal. Final naming is open and can be re-decided at kickoff; the I was specifically chosen as **Integrity** rather than *Identity* to keep the pillars capability-centric — the I governs integrity of the request context and its supporting evidence, not who is making the request. |
+| TIGER acronym ambiguity | The five-letter TIGER expansion (Transparency, **Identity**, Governance, Events, Resilience) is used in this proposal. **Identity** is distinct from the **(action, resource)** capability catalog: it scores **1–5 proficiency** for managing human, software, and organizational principals that supply **PARC** Principals and **Context** (including JWT evidence). Request-context and policy proofs remain in other pillars (e.g., Transparency). Final naming can be re-decided at kickoff. |
 
 ---
 

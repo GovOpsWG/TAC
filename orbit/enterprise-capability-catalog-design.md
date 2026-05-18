@@ -14,12 +14,12 @@
 
 This document proposes a design for representing **enterprise capabilities** — discrete **(action, resource)** pairs the organization recognizes as units of authorization risk and governance — as **first-class catalog entries in the [Gemara](https://gemara.openssf.org) GRC engineering model**, and for organizing a complete **GovOps repository** of Gemara artifacts around them.
 
-In a **capability-based** model, applications and policy engines ask whether a **named operation on a named resource** can be granted; the **capability** is that **(action, resource)** pair, not the requester and not the ambient context. The **PARC Principal**, **Context** (often including **signed JWTs** or other attestations whose claims the PDP interprets), and environmental attributes are **inputs to policy** when a decision is requested — they determine *whether* a capability may be exercised *right now*, not *what* the capability is. OpenID AuthZEN's **PARC** envelope (Principal, Action, Resource, Context) is the standard shape of that **authorization request** at the PDP boundary; it is not the definition of a capability.
+In a **capability-based** model, applications and policy engines ask whether a **named operation on a named resource** can be granted; the **capability** is that **(action, resource)** pair, not the requester and not the ambient context. The **PARC Principal**, **Context** (often including **signed JWTs** or other attestations whose claims the PDP interprets), and environmental attributes are **inputs to policy** when a decision is requested — they determine *whether* a capability may be exercised *right now*, not *what* the capability is. OpenID AuthZEN's **PARC** envelope (Principal|Subject, Action, Resource, Context) is the standard shape of that **authorization request** at the PDP boundary; it is not the definition of a capability.
 
 Three ideas combine to form the design:
 
 1. **Capabilities are action–resource pairs; PARC is the request envelope.** The catalog inventories **(action, resource)**. At evaluation time, a PDP receives a **PARC-shaped request** (PARC Principal — the requester — plus action, resource instance, and context, often carrying **signed JWT evidence** in Context for policy to consume). Engine neutrality comes from the fact that every PDP class can consume PARC-shaped requests while the catalog stays a domain-centric inventory of discrete **(action, resource)** entries — separate from person-centric **entitlement** matrices maintained in IAM or IGA systems.
-2. **A GovOps repository of Gemara artifacts.** A single `#CapabilityCatalog` (`GovOps-AC`) inventories the enterprise's authorization surface as those **(action, resource)** capabilities, and a small family of `#ControlCatalog` artifacts — one per **TIGER** pillar (Transparency, Integrity, Governance, Events, Resilience) — express the requirements those capabilities must satisfy. Mapping documents tie the catalog to external compliance frameworks.
+2. **A GovOps repository of Gemara artifacts.** A single `#CapabilityCatalog` (`GovOps-AC`) inventories the enterprise's authorization surface as those **(action, resource)** capabilities, and a small family of `#ControlCatalog` artifacts — one per **TIGER** pillar (Transparency, **Identity**, Governance, Events, Resilience) — express the requirements those capabilities must satisfy. Mapping documents tie the catalog to external compliance frameworks.
 3. **Provable operational claims, not just policy assertions.** Where today's GRC says *"the system MUST require MFA"*, GovOps elevates the standard to *"there exists no satisfiable authorization path where this capability succeeds without MFA, given the deployed policy."* That shift — from *attested presence* to *demonstrated impossibility* — is what the **TIGER metric** measures.
 
 Gemara already provides 90% of the substrate: a stable `#CapabilityCatalog` (ADR-0019), `#ControlCatalog` and `#AssessmentRequirement`, mapping primitives that include `Capability` as an `EntryType`, `#Lexicon`, `#EvaluationLog`, `#EnforcementLog`, and `#AuditLog`. The remaining 10% is a small, additive **Enterprise Capability Profile** of `#Capability` and a set of conventions for arranging the artifacts.
@@ -102,7 +102,8 @@ The TIGER metric (§9) measures the fraction of declared requirements for which 
 | **Context** | Attributes bundled with a **PARC request** (time, IP, approval counts, device posture, etc.), commonly including **signed JWTs** ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)) or similar tokens whose claims the PDP treats as **evidence**. Context answers *whether* a capability may be exercised in this invocation; it is not part of the capability identity. |
 | **PARC** | Principal, Action, Resource, Context — the OpenID AuthZEN **authorization request** shape. Used at the PDP boundary; **not** synonymous with "capability." |
 | **Enterprise capability** | A Gemara catalog entry whose **identity** is an **(action, resource)** pair (plus `id`, `title`, `description`, `group` per `#Capability`). Optional fields may document risk, sensitivity, or **expected** policy preconditions; those extensions do not redefine the capability. |
-| **TIGER** | Five governance pillars used by this design: **T**ransparency, **I**ntegrity (of request context and evidence — not "identity" of the subject), **G**overnance, **E**vents, **R**esilience. Also the name of the derived metric defined in §9. |
+| **TIGER** | Five governance pillars: **T**ransparency, **I**dentity (management proficiency for human, software, and organizational principals), **G**overnance, **E**vents, **R**esilience. Also the name of the derived metric defined in §9. |
+| **Identity proficiency score** | An integer **1–5** rating of how well the enterprise manages a class of **principal** (human, software, or organizational) that appears in **PARC** authorization requests. Recorded separately from pass/fail control satisfaction; see §7.2 and §9.1. |
 | **Provable claim** | A requirement expressed in a form checkable by a policy analyzer, such that the deployed policy either admits a proof of the claim (e.g., UNSAT for a counterexample formula) or yields a counterexample. |
 
 ---
@@ -137,7 +138,7 @@ govops/
   metadata.yaml                      # shared metadata fragments
   GovOps-AC.yaml                     # #CapabilityCatalog (Enterprise Capability Profile)
   GovOps-Transparency.yaml           # #ControlCatalog (T)
-  GovOps-Integrity.yaml             # #ControlCatalog (I — request context / evidence integrity)
+  GovOps-Identity.yaml               # #ControlCatalog (I — identity management proficiency, 1–5)
   GovOps-Governance.yaml             # #ControlCatalog (G)
   GovOps-Events.yaml                 # #ControlCatalog (E)
   GovOps-Resilience.yaml             # #ControlCatalog (R)
@@ -148,6 +149,7 @@ govops/
   tiger/
     tiger-score.yaml                 # latest derived TIGER score
     tiger-evidence.json              # inputs the score was computed from
+    identity-proficiency.yaml        # latest 1–5 scores: human, software, organizational
 ```
 
 Mapping each top-level item to a Gemara artifact type:
@@ -157,7 +159,8 @@ Mapping each top-level item to a Gemara artifact type:
 | `lexicon.yaml` | `#Lexicon` | Canonical action verbs and resource type names. |
 | `metadata.yaml` | shared `#Metadata` includes | Author, version, lexicon reference, applicability groups. |
 | `GovOps-AC.yaml` | `#CapabilityCatalog` of `#EnterpriseCapability` | Enterprise authorization surface. |
-| `GovOps-{T,I,G,E,R}.yaml` | `#ControlCatalog` | Pillar-scoped requirements that capabilities must satisfy. |
+| `GovOps-{T,I,G,E,R}.yaml` | `#ControlCatalog` | Pillar-scoped requirements; **Identity** (`GovOps-Identity.yaml`) additionally defines 1–5 proficiency for human, software, and organizational principals. |
+| `tiger/identity-proficiency.yaml` | convention | Latest **1–5** identity class scores and normalized Identity pillar input to TIGER. |
 | `policies/` | engine-specific files | Source of truth for what the deployed PDPs evaluate. |
 | `proofs/` | logical certificates referenced from `#EvaluationLog.evidence` | Per-claim UNSAT proofs or counterexamples. |
 | `evidence/` | runtime data referenced from `#Evidence` entries | Decision logs, attestations feeding evaluations. |
@@ -412,50 +415,134 @@ controls:
 
 Evidence sources: PDP decision logs, AuthZEN evaluate response reasons, append-only event stores, attestations from the policy distribution pipeline.
 
-### 7.2 `GovOps-Integrity.yaml`
+### 7.2 `GovOps-Identity.yaml`
 
-The **Integrity** pillar governs **evidence and context integrity** for decisions over catalog capabilities — for example, that high-risk **(action, resource)** pairs cannot be permitted unless the **PARC Context** satisfies documented assurance requirements, including where policy relies on **JWT claims** (or equivalent signed token evidence) supplied in Context. The novel framing is **mathematical impossibility, not configuration presence**.
+The **Identity** pillar measures **how proficiently the enterprise manages identities** that appear as **PARC Principals** in authorization requests — across three classes:
+
+| Class | What is managed | Examples of mature practice (illustrative, not exhaustive) |
+|---|---|---|
+| **Human** | Workforce and interactive users | Identity Governance and Administration (IGA), **Agama**-based (or equivalent) identity orchestration, widely adopted multi-factor authentication (MFA), Privileged Access Management (PAM) |
+| **Software** | Services, agents, and workloads | [SPIFFE](https://spiffe.io/) identities for cloud and platform agents, asymmetric authentication (mTLS, signed service credentials), short-lived workload credentials, secrets rotation |
+| **Organizational** | Third parties, business units, and federated org boundaries | Supplier/customer federation with contract-scoped trust, business-unit identity namespaces, partner onboarding with lifecycle and offboarding, org-level attestations in **Context** |
+
+This pillar is **orthogonal to the capability catalog**: it does not redefine **(action, resource)** entries in `GovOps-AC`. Instead it scores whether the **identity plane** that supplies **Principals** and **Context** (including **JWT** claims) is fit for the authorization surface the catalog describes. Weak identity management undermines every capability regardless of policy quality.
+
+#### Proficiency scale (1–5)
+
+Each class receives an integer score from **1** (ad hoc / immature) to **5** (optimized, measured, continuously improved). Scores are **authored or assessed** per reporting period and recorded in `tiger/identity-proficiency.yaml` (and referenced from `#EvaluationLog` evidence). The **Identity pillar score** used in aggregate TIGER (§9) is the **mean of the three class scores, normalized to 0–1** (`mean / 5`).
+
+| Score | Label | Human (examples) | Software (examples) | Organizational (examples) |
+|:---:|---|---|---|---|
+| **1** | Ad hoc | Manual account provisioning; no central IGA; MFA rare | Shared service accounts; long-lived passwords in config | Informal partner access; no BU separation |
+| **2** | Basic | Partial IGA for some apps; MFA on VPN only | Some service accounts in vault; inconsistent naming | Ad hoc federation for largest partners |
+| **3** | Defined | IGA with periodic access reviews; MFA on critical apps | SPIFFE or equivalent in some clusters; mTLS on key APIs | Documented third-party onboarding; BU labels in directory |
+| **4** | Managed | IGA + orchestration (e.g., Agama-style flows); MFA widely adopted; PAM for admins | SPIFFE widely used; asymmetric auth default for east-west | Federated org identities with lifecycle; BU-scoped policies |
+| **5** | Optimized | Continuous access review; step-up and risk-based auth integrated with PDP Context | Automated rotation; zero long-lived secrets; SVIDs everywhere applicable | Measured partner risk tiers; automated deprovisioning; org claims in JWT |
 
 ```yaml
-title: GovOps Integrity Catalog
+title: GovOps Identity Catalog
 metadata:
-  id: cat.govops.integrity
+  id: cat.govops.identity
   type: ControlCatalog
   gemara-version: "0.x"
   description: >
-    Request context and evidence for PARC evaluations over catalog capabilities
-    meet documented assurance requirements.
+    Assess enterprise proficiency (1–5) managing human, software, and organizational
+    identities that supply PARC Principals and Context for authorization.
   author: { id: govops-wg, name: GovOps WG, type: Software Assisted }
 groups:
-  - id: g.int
-    title: Integrity
-    description: Context and evidence preconditions on authorization requests.
+  - id: g.id-human
+    title: Human identity
+    description: Workforce and interactive user identity management.
+  - id: g.id-software
+    title: Software identity
+    description: Service, agent, and workload identity management.
+  - id: g.id-org
+    title: Organizational identity
+    description: Third-party, business-unit, and federated organizational identity.
 controls:
-  - id: GOVOPS-INT-01
-    title: Sensitive capabilities require strong authentication evidence in context
+  - id: GOVOPS-ID-HUMAN
+    title: Human identity management proficiency
     objective: >
-      No authorization path exists in which a sensitive (action, resource) capability
-      is permitted unless the PARC request carries sufficient authentication evidence.
-    group: g.int
+      The enterprise can assign, review, and revoke human access with assurance
+      appropriate to the authorization surface catalogued in GovOps-AC.
+    group: g.id-human
     state: Active
     assessment-requirements:
-      - id: GOVOPS-INT-01.01
+      - id: GOVOPS-ID-HUMAN.01
         text: >
-          For every capability with data-sensitivity in {confidential, pii, regulated}
-          OR risk-tier >= high, the deployed policy MUST require an authentication
-          context class reference (acr) of urn:mfa or stronger on the PARC Context
-          when permitting that action on that resource.
-        applicability: [production]
+          The enterprise MUST maintain a documented 1–5 proficiency score for human
+          identity management, evaluated against capabilities such as IGA coverage,
+          identity orchestration (e.g., Agama-based or equivalent flows), MFA adoption,
+          and PAM for privileged users. Score MUST be recorded each reporting period.
+        applicability: [enterprise]
         state: Active
-      - id: GOVOPS-INT-01.02
+      - id: GOVOPS-ID-HUMAN.02
         text: >
-          A symbolic analysis of the deployed policy MUST yield UNSAT for the
-          formula: Permit on (action=transfer, resource=BankAccount) AND context.acr != urn:mfa.
-        applicability: [production]
+          Human identity scores below 3 MUST trigger a documented remediation plan
+          linked to high-risk (action, resource) capabilities in GovOps-AC.
+        applicability: [enterprise]
+        state: Active
+
+  - id: GOVOPS-ID-SOFTWARE
+    title: Software identity management proficiency
+    objective: >
+      Workloads and agents present cryptographically strong, attributable identities
+      to PDPs (e.g., via SPIFFE, asymmetric authentication).
+    group: g.id-software
+    state: Active
+    assessment-requirements:
+      - id: GOVOPS-ID-SOFTWARE.01
+        text: >
+          The enterprise MUST maintain a documented 1–5 proficiency score for software
+          identity management, evaluated against practices such as SPIFFE (or equivalent)
+          workload identities, asymmetric authentication for service-to-service calls,
+          elimination of long-lived shared secrets, and alignment between service
+          identity and entries in GovOps-AC engine-bindings.
+        applicability: [enterprise]
+        state: Active
+
+  - id: GOVOPS-ID-ORG
+    title: Organizational identity management proficiency
+    objective: >
+      Third parties and business units are represented with lifecycle-managed,
+      policy-relevant organizational identity in authorization Context.
+    group: g.id-org
+    state: Active
+    assessment-requirements:
+      - id: GOVOPS-ID-ORG.01
+        text: >
+          The enterprise MUST maintain a documented 1–5 proficiency score for
+          organizational identity (third parties, business units, federated orgs),
+          evaluated against federation hygiene, contractual scope, and whether
+          organizational attributes are available to policy via PARC Context.
+        applicability: [enterprise]
         state: Active
 ```
 
-Note the difference between `01.01` and `01.02`: the first checks that a configuration is present; the second checks that no execution path circumvents it. Both are recorded; `01.02` is the provable claim.
+Example proficiency artifact (not a Gemara catalog type today; convention for tooling):
+
+```yaml
+# tiger/identity-proficiency.yaml
+metadata:
+  id: identity-proficiency.acme.2026-05-13
+  reporting-period: "2026-Q2"
+  assessed-by: acme-security-architecture
+scores:
+  human: 4
+  software: 3
+  organizational: 3
+  pillar-mean: 3.33
+  pillar-normalized: 0.67   # mean / 5 — feeds TIGER aggregate (§9.2)
+rationale:
+  human: >
+    Enterprise IGA covers 90% of workforce apps; Agama orchestration for customer
+  software: >
+    SPIFFE in Kubernetes production; legacy VMs still use shared keys (remediation tracked).
+  organizational: >
+    Top-20 suppliers federated; BU claims in internal JWT; partner tiering in progress.
+```
+
+High-risk **(action, resource)** capabilities in `GovOps-AC` still require **PARC Context** evidence (e.g., `context.acr`, JWT claims) in **deployed policy** — that is enforced by controls in other pillars (Transparency, Governance) and by policy analysis in §8. The Identity pillar answers a prior question: *are the Principals and organizational context trustworthy enough to support those policies?*
 
 ### 7.3 `GovOps-Governance.yaml`
 
@@ -616,11 +703,11 @@ GovOps does not require every requirement to be provable. Many TIGER requirement
 
 ## 9. The TIGER metric
 
-TIGER is the **delta between declared governance requirements and provable operational reality** across five pillars: Transparency, Integrity, Governance, Events, Resilience.
+TIGER is the **delta between declared governance requirements and provable operational reality** across five pillars: Transparency, **Identity**, Governance, Events, Resilience.
 
 ### 9.1 Per-pillar score
 
-For each pillar P, define:
+**Transparency, Governance, Events, Resilience** — pass/fail over `#AssessmentRequirement` entries:
 
 ```text
 score(P) =
@@ -636,13 +723,23 @@ Where:
 - `weight(r)` is an authoring-time weight derived from the risk-tier of the capabilities the parent control references (a control governing only `low` capabilities counts less than one governing `critical` capabilities).
 - `status(r)` is `1` if the requirement is satisfied with current evidence, `0` if it is not. For provable claims, "satisfied" means the proof is current (its policy hash matches the deployed policy version) and its result is UNSAT for the negation. For observable claims, "satisfied" means the runtime evidence stream confirms the requirement over the reporting window.
 
+**Identity** — proficiency on a **1–5** scale (§7.2), then normalized for TIGER:
+
+```text
+score(Identity) = (score_human + score_software + score_org) / (3 * 5)
+```
+
+Where each of `score_human`, `score_software`, and `score_org` is an integer from **1** to **5** recorded in `tiger/identity-proficiency.yaml`. The denominator **15** is the maximum achievable sum (three classes × 5). Example: human=4, software=3, organizational=3 → `score(Identity) = 10/15 ≈ 0.67`.
+
+Pass/fail requirements in `GovOps-Identity.yaml` (e.g., that scores are documented, remediation plans exist when human score is below 3) use the same `status(r)` formula as other pillars and may be tracked separately in `tiger-evidence.json`.
+
 ### 9.2 Aggregate TIGER
 
 ```text
 TIGER = w_T * score(T) + w_I * score(I) + w_G * score(G) + w_E * score(E) + w_R * score(R)
 ```
 
-Default pillar weights (illustrative; organizations may re-weight): `T=20, I=25, G=20, E=15, R=20`. The **Integrity** pillar is weighted slightly higher by default because context-and-evidence preconditions on **PARC requests** for high-risk **(action, resource)** capabilities tend to dominate measurable risk reduction; other organizations will prefer different defaults.
+Default pillar weights (illustrative; organizations may re-weight): `T=20, I=25, G=20, E=15, R=20`. The **Identity** pillar is weighted slightly higher by default because weak human, software, or organizational identity management undermines authorization policy for the entire **(action, resource)** surface; other organizations will prefer different defaults.
 
 ### 9.3 What TIGER measures and what it does not
 
@@ -656,7 +753,7 @@ TIGER does *not* measure:
 
 - Adversarial robustness against unmodeled attacks.
 - Quality of the catalog itself (an under-specified catalog can yield a high TIGER by trivial controls).
-- Workforce administration or HR identity lifecycle except where it surfaces as **PARC Context** evidence in authorization requests.
+- Detailed HR processes beyond what is needed to score **human** identity proficiency (1–5); the Identity pillar scores management maturity, not every HR policy.
 
 These are appropriate concerns for adjacent metrics (vulnerability disclosure, IGA recertification cadence, etc.), not TIGER.
 
@@ -770,31 +867,44 @@ capabilities:
     risk-tier: critical
 ```
 
-### 10.2 The Integrity pillar control that governs the transfer capability
+### 10.2 Identity proficiency for Acme (illustrative)
 
-Already shown as `GOVOPS-INT-01` in §7.2. The control's threats reference the relevant `#Threat` entry (e.g., `t.transfer.fraud`), and the threat's `capabilities` list points back at `payments:transfer:bank-account` — the **(transfer, BankAccount)** capability, independent of caller.
+Acme records quarterly identity proficiency alongside the capability catalog. The **transfer** capability (`payments:transfer:bank-account`) depends on trustworthy **human** principals (MFA in JWT **Context**) and **software** principals (payment processors using workload identity):
 
-### 10.3 An evaluation log recording the proof
+```yaml
+# tiger/identity-proficiency.yaml (excerpt — see §7.2 for full shape)
+metadata:
+  id: identity-proficiency.acme.2026-05-13
+  reporting-period: "2026-Q2"
+scores:
+  human: 4
+  software: 3
+  organizational: 3
+  pillar-normalized: 0.67
+rationale:
+  human: IGA + Agama orchestration for customer flows; MFA enterprise-wide; PAM for ops admins.
+  software: SPIFFE in K8s payments namespace; legacy batch jobs still on shared keys (remediation Q3).
+  organizational: Federated B2B partners; BU claim in internal tokens; supplier tiering pilot.
+```
+
+### 10.3 An evaluation log recording policy proof (Transparency / provable claims)
+
+Separate from identity proficiency, Acme evaluates whether deployed policy enforces MFA **Context** on the transfer capability:
 
 ```yaml
 metadata:
-  id: log.acme.ec.integrity.2026-05-13
+  id: log.acme.ec.policy.2026-05-13
   type: EvaluationLog
   gemara-version: "0.x"
-  description: Daily evaluation of GOVOPS-INT-01 against deployed policy.
+  description: Policy analysis for payments:transfer:bank-account (Transparency pillar).
 target:
   id: prod.payments.v1.4.2
   name: Payments service (production)
   type: Software
   environment: production
 result: Pass
-# Per-requirement evaluation entries (illustrative):
-#   GOVOPS-INT-01.01 -> evidence: DecisionLog stream confirms context.acr=urn:mfa for all
-#                       observed Permit decisions on action=transfer, resource=BankAccount
-#                       in the reporting window.
-#   GOVOPS-INT-01.02 -> evidence: Proof artifact in proofs/int-01-02-2026-05-13.json,
-#                       analyzer attests UNSAT for the negation, signed against
-#                       deployed policy hash sha256:...
+# Illustrative:
+#   Proof: UNSAT for Permit(transfer, BankAccount) AND context.acr != urn:mfa
 ```
 
 ### 10.4 The TIGER score that results
@@ -806,15 +916,19 @@ metadata:
   catalog-version: "ec.acme:2026.1"
 score:
   T: 0.94
-  I: 0.81
+  I: 0.67
   G: 0.95
   E: 0.78
   R: 0.88
-  aggregate: 0.87
+  aggregate: 0.84
+identity-proficiency:
+  human: 4
+  software: 3
+  organizational: 3
 notes: |
-  Integrity pillar score reduced because GOVOPS-INT-01.02 holds for payments:transfer:bank-account
-  but the corresponding UNSAT proof is missing for governance:policy-write:governance-policy
-  (analyzer pending). Will re-run after analyzer integration completes.
+  Identity pillar (I=0.67) driven by identity-proficiency.yaml mean 3.33/5.
+  Software identity remediation (shared keys on batch) is tracked against GOVOPS-ID-SOFTWARE.01.
+  Policy proof for transfer MFA Context satisfied (Transparency); catalog capability unchanged.
 ```
 
 The note format is intentional: TIGER tells you not only the score but the specific gap, expressed in catalog terms.
@@ -826,41 +940,53 @@ The note format is intentional: TIGER tells you not only the score but the speci
 Use Gemara's existing `#MappingDocument` to record how enterprise capabilities and TIGER controls relate to entries in NIST 800-53, ISO 27001, SOC 2, or any other framework. `#EntryType` already includes both `Capability` and `Control`, so mappings work without any schema change:
 
 ```yaml
-title: Enterprise Capability and TIGER Integrity Mapping to NIST 800-53r5
+title: Enterprise Capability and TIGER Identity Mapping to NIST 800-53r5
 metadata:
-  id: map.govops.int.nist80053r5
+  id: map.govops.id.nist80053r5
   type: MappingDocument
   gemara-version: "0.x"
-  description: Map GOVOPS-INT controls and EC entries to NIST 800-53r5 controls.
+  description: Map GOVOPS-ID identity proficiency controls and EC entries to NIST 800-53r5.
   author: { id: govops-wg, name: GovOps WG, type: Software Assisted }
   mapping-references:
     - id: ec
       title: Acme Enterprise Capability Catalog
       version: "2026.1"
       url: https://acme.example/catalogs/ec.yaml
-    - id: govops-int
-      title: GovOps Integrity Catalog
+    - id: govops-id
+      title: GovOps Identity Catalog
       version: "0.1"
-      url: https://acme.example/catalogs/govops-integrity.yaml
+      url: https://acme.example/catalogs/govops-identity.yaml
     - id: nist80053r5
       title: NIST SP 800-53 Rev. 5
       version: "5.1.1"
 source-reference:
-  reference-id: govops-int
+  reference-id: govops-id
   entry-type: Control
 target-reference:
   reference-id: nist80053r5
   entry-type: Control
 mappings:
   - id: m1
-    source: GOVOPS-INT-01
+    source: GOVOPS-ID-HUMAN
     relationship: implements
     targets:
-      - entry-id: AC-3
-        rationale: "Access enforcement on sensitive capabilities."
+      - entry-id: AC-2
+        rationale: "Account management and IGA proficiency for human principals."
         confidence-level: High
       - entry-id: IA-2(1)
-        rationale: "Strong authentication evidence required in request context for privileged (action, resource) pairs."
+        rationale: "MFA adoption scored in human identity proficiency."
+  - id: m2
+    source: GOVOPS-ID-SOFTWARE
+    relationship: implements
+    targets:
+      - entry-id: IA-5
+        rationale: "Authenticator management for software/workload identities (SPIFFE, asymmetric auth)."
+  - id: m3
+    source: GOVOPS-ID-ORG
+    relationship: supports
+    targets:
+      - entry-id: AC-20
+        rationale: "Third-party and organizational identity federation proficiency."
 ```
 
 GovOps Objective #5 ("policy coverage matches risk exposure") becomes a query: *"Which capabilities at risk-tier >= high lack a TIGER control that is mapped (via implements/supports) to AC-3 in NIST or A.5.15 in ISO 27001?"*
@@ -904,8 +1030,9 @@ The toolchain is engine-pluggable: each `govops prove` plug-in calls a specific 
 4. **Inheritance and roles.** Should the profile express role to capability mappings, or is that the IGA layer's concern? Current proposal: out of scope for this catalog.
 5. **Versioning of capabilities.** When an enterprise renames or splits a capability, what is the recommended `replaced-by` pattern? `#Control` already has one — should `#EnterpriseCapability` mirror it?
 6. **TIGER weighting.** Default pillar weights and per-control risk weights need community calibration. A weight registry maintained by the WG seems plausible.
-7. **Public reference catalogs.** Who curates "the" reference catalog for, say, GitHub or Kubernetes capabilities? A community process modeled on Vector / Threat catalogs is plausible but needs sponsorship.
-8. **AuthZEN integration depth.** The design uses PARC as an abstraction; should the WG also publish a guidance document showing how an AuthZEN-conformant evaluate response feeds the `Evidence` pipeline?
+7. **Identity proficiency rubric.** Should the 1–5 scale be standardized in a separate Gemara artifact or remain a GovOps convention in `identity-proficiency.yaml`? Community calibration of level descriptors per industry sector is an open question.
+8. **Public reference catalogs.** Who curates "the" reference catalog for, say, GitHub or Kubernetes capabilities? A community process modeled on Vector / Threat catalogs is plausible but needs sponsorship.
+9. **AuthZEN integration depth.** The design uses PARC as an abstraction; should the WG also publish a guidance document showing how an AuthZEN-conformant evaluate response feeds the `Evidence` pipeline?
 
 ---
 
@@ -914,7 +1041,7 @@ The toolchain is engine-pluggable: each `govops prove` plug-in calls a specific 
 Gemara already provides most of what is needed to govern enterprise capabilities: a stable `#CapabilityCatalog`, a stable `#ControlCatalog` and `#AssessmentRequirement`, mapping primitives that include `Capability` as an `EntryType`, a `#Lexicon`, and the layered Threat/Control/Policy/Log machinery. The remaining work is:
 
 - **An Enterprise Capability Profile** of `#Capability` whose **identity** is **(action, resource)** — engine-neutral, with **PARC** reserved for **authorization requests** at the PDP boundary (OpenID AuthZEN), not conflated with the capability tuple. **Context** commonly carries **signed JWTs** as evidence for policy evaluation ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)).
-- **A repository convention** that pairs the capability catalog with five TIGER pillar `#ControlCatalog`s.
+- **A repository convention** that pairs the capability catalog with five TIGER pillar `#ControlCatalog`s, including **`GovOps-Identity.yaml`** with **1–5 proficiency** scoring for human, software, and organizational identity management.
 - **A discipline of provable claims** alongside conventional configuration assertions, recorded in `#EvaluationLog` evidence entries.
 - **A TIGER metric** that measures the fraction of declared requirements that are demonstrably true of the deployed authorization surface.
 
