@@ -27,7 +27,7 @@ UC-08), **GRC Practitioner** (UC-02, UC-04), **Compliance Auditor** (UC-05), **I
 Team** (UC-06), and **Policy Engine Operator** (UC-07, UC-08 as secondary actor).
 
 A critical distinction runs through every use case: **TIGER produces five independent
-ordinal scores** (one per pillar: Transparency, Integrity, Governance, Events,
+ordinal scores** (one per pillar: Transparency, Identity, Governance, Events,
 Resilience), each on a scale of 1–5. There is no single aggregate TIGER score.
 **Policy Coverage** is a separate metric — the weighted fraction of declared
 `#AssessmentRequirement`s currently satisfied by deployed policy and runtime evidence —
@@ -406,17 +406,17 @@ pillar scores, but the two are not the same thing.
 
 ### Step-by-Step Workflow
 
-**Step 1 — Author the Integrity pillar control catalog.**
+**Step 1 — Author the Identity pillar control catalog.**
 
-The GRC Practitioner creates `govops/GovOps-Integrity.yaml`. The control
-`GOVOPS-INT-01` governs `payments:transfer:bank-account` — the highest-risk capability
+The GRC Practitioner creates `govops/GovOps-Identity.yaml`. The control
+`GOVOPS-ID-01` governs `payments:transfer:bank-account` — the highest-risk capability
 in the catalog. It contains two `#AssessmentRequirement`s for the same capability:
-one configuration assertion (`GOVOPS-INT-01.01`) and one provable claim
-(`GOVOPS-INT-01.02`), illustrating the difference between the two flavors (design §8).
+one configuration assertion (`GOVOPS-ID-01.01`) and one provable claim
+(`GOVOPS-ID-01.02`), illustrating the difference between the two flavors (design §8).
 
 ```yaml
-# govops/GovOps-Integrity.yaml
-title: GovOps Integrity Catalog
+# govops/GovOps-Identity.yaml
+title: GovOps Identity Catalog
 metadata:
   id: cat.govops.integrity
   type: ControlCatalog
@@ -426,16 +426,16 @@ metadata:
     meet documented assurance requirements.
   author: { id: govops-wg, name: GovOps WG, type: Software Assisted }
 groups:
-  - id: g.int
-    title: Integrity
+  - id: g.id
+    title: Identity
     description: Context and evidence preconditions on authorization requests.
 controls:
-  - id: GOVOPS-INT-01
+  - id: GOVOPS-ID-01
     title: Sensitive capabilities require strong authentication evidence in context
     objective: >
       No authorization path exists in which a sensitive (action, resource) capability
       is permitted unless the PARC request carries sufficient authentication evidence.
-    group: g.int
+    group: g.id
     state: Active
     capabilities:
       reference-id: ec
@@ -443,7 +443,7 @@ controls:
         - reference-id: payments:transfer:bank-account
     assessment-requirements:
       # Flavor 1: Configuration assertion — checks that a control is PRESENT
-      - id: GOVOPS-INT-01.01
+      - id: GOVOPS-ID-01.01
         text: >
           For every capability with data-sensitivity in {confidential, pii, regulated}
           OR risk-tier >= high, the deployed policy MUST require an authentication
@@ -453,7 +453,7 @@ controls:
         state: Active
         flavor: configuration-assertion
       # Flavor 2: Provable claim — checks that the control is SUFFICIENT
-      - id: GOVOPS-INT-01.02
+      - id: GOVOPS-ID-01.02
         text: >
           A symbolic analysis of the deployed policy MUST yield UNSAT for the
           formula: Permit on (action=transfer, resource=BankAccount) AND
@@ -464,10 +464,10 @@ controls:
 ```
 
 The key distinction:
-- `GOVOPS-INT-01.01` is a **configuration assertion**: it checks that the MFA
+- `GOVOPS-ID-01.01` is a **configuration assertion**: it checks that the MFA
   requirement is *present* in policy. An auditor can verify this by inspecting the
   deployed policy artifact.
-- `GOVOPS-INT-01.02` is a **provable claim**: it checks that no execution path
+- `GOVOPS-ID-01.02` is a **provable claim**: it checks that no execution path
   *circumvents* the MFA requirement. This requires symbolic analysis (UC-03) and
   yields an UNSAT certificate or a counterexample.
 
@@ -520,7 +520,7 @@ It is **not** a TIGER pillar score.
 ```
 $ govops coverage \
     --catalog govops/GovOps-AC.yaml \
-    --controls govops/GovOps-Integrity.yaml govops/GovOps-Governance.yaml \
+    --controls govops/GovOps-Identity.yaml govops/GovOps-Governance.yaml \
     --evidence govops/evidence/ \
     --proofs govops/proofs/
 
@@ -537,11 +537,11 @@ By risk tier:
   low       : 0 / 0 requirements  (n/a)
 
 Satisfied requirements:
-  ✓ GOVOPS-INT-01.01  payments:transfer:bank-account  [configuration-assertion]  evidence: decision-log
+  ✓ GOVOPS-ID-01.01  payments:transfer:bank-account  [configuration-assertion]  evidence: decision-log
   ✓ GOVOPS-GV-01.01   governance:policy-write:governance-policy  [configuration-assertion]  evidence: policy-inspection
 
 Unsatisfied requirements:
-  ✗ GOVOPS-INT-01.02  payments:transfer:bank-account  [provable-claim]  no proof artifact found
+  ✗ GOVOPS-ID-01.02  payments:transfer:bank-account  [provable-claim]  no proof artifact found
   ✗ GOVOPS-GV-01.02   governance:policy-write:governance-policy  [provable-claim]  no proof artifact found
   ✗ GOVOPS-GV-01.03   governance:policy-write:governance-policy  [configuration-assertion]  no evidence of override-expiry mechanism
 
@@ -612,7 +612,7 @@ provable claims. The two metrics are used together in governance review meetings
 
 | Artifact | Gemara type | Path | Notes |
 |---|---|---|---|
-| Integrity pillar catalog | `#ControlCatalog` | `govops/GovOps-Integrity.yaml` | Created; 1 control, 2 requirements |
+| Identity pillar catalog | `#ControlCatalog` | `govops/GovOps-Identity.yaml` | Created; 1 control, 2 requirements |
 | Governance pillar catalog | `#ControlCatalog` | `govops/GovOps-Governance.yaml` | Created; 1 control, 3 requirements |
 | Resilience pillar catalog | `#ControlCatalog` | `govops/GovOps-Resilience.yaml` | Created; 1 control, 3 requirements |
 
@@ -620,10 +620,10 @@ provable claims. The two metrics are used together in governance review meetings
 
 - **P1 (Capability ID Format):** All capability ids in catalog excerpts and tool output
   match the three-segment format.
-- **P2 (AssessmentRequirement ID Format):** All requirement ids (`GOVOPS-INT-01.01`,
-  `GOVOPS-INT-01.02`, `GOVOPS-GV-01.01`–`GOVOPS-GV-01.03`, `GOVOPS-RS-01.01`–
+- **P2 (AssessmentRequirement ID Format):** All requirement ids (`GOVOPS-ID-01.01`,
+  `GOVOPS-ID-01.02`, `GOVOPS-GV-01.01`–`GOVOPS-GV-01.03`, `GOVOPS-RS-01.01`–
   `GOVOPS-RS-01.03`) match `^GOVOPS-[A-Z]+-[0-9]+\.[0-9]+$`.
-- **P3 (TIGER Score Integrity):** This use case does not show TIGER scores; it shows
+- **P3 (TIGER Score Identity):** This use case does not show TIGER scores; it shows
   Policy Coverage only, correctly presented as a separate metric.
 - **P6 (Lint/Coverage Output Consistency):** The `govops coverage` output references
   only `payments:transfer:bank-account`, `governance:policy-write:governance-policy`,
@@ -665,7 +665,7 @@ refreshing a stale proof after a policy redeploy.
 ### Preconditions
 
 - `govops/GovOps-AC.yaml` passes `govops lint` (UC-01 complete).
-- `govops/GovOps-Integrity.yaml` contains `GOVOPS-INT-01.02` as a provable claim
+- `govops/GovOps-Identity.yaml` contains `GOVOPS-ID-01.02` as a provable claim
   (UC-02 complete).
 - The payments service Cedar policy is deployed at `govops/policies/payments-cedar.cedar`.
 - The `govops prove` Cedar analyzer plug-in is installed.
@@ -675,13 +675,13 @@ refreshing a stale proof after a policy redeploy.
 
 **Step 1 — Review the engine-neutral provable claim.**
 
-The claim `GOVOPS-INT-01.02` is already authored in `GovOps-Integrity.yaml` (UC-02).
+The claim `GOVOPS-ID-01.02` is already authored in `GovOps-Identity.yaml` (UC-02).
 It is expressed in engine-neutral terms: it names a capability id, a PARC Context
 predicate, and the deployed policy. The claim does not reference Cedar-specific syntax.
 
 ```yaml
-# From govops/GovOps-Integrity.yaml
-- id: GOVOPS-INT-01.02
+# From govops/GovOps-Identity.yaml
+- id: GOVOPS-ID-01.02
   text: >
     A symbolic analysis of the deployed policy MUST yield UNSAT for the
     formula: Permit on (action=transfer, resource=BankAccount) AND
@@ -708,14 +708,14 @@ reports the outcome.
 
 ```
 $ govops prove \
-    --claim GOVOPS-INT-01.02 \
+    --claim GOVOPS-ID-01.02 \
     --catalog govops/GovOps-AC.yaml \
     --policy govops/policies/payments-cedar.cedar \
     --engine cedar \
     --output govops/proofs/
 
 govops prove v0.9.0
-Claim:    GOVOPS-INT-01.02
+Claim:    GOVOPS-ID-01.02
 Engine:   cedar
 Policy:   govops/policies/payments-cedar.cedar
 Hash:     sha256:a3f8c2d1e9b047f6a2c5d8e1f3b6a9c2d5e8f1b4a7c0d3e6f9b2c5d8e1f4a7c0
@@ -728,7 +728,7 @@ Invoking Cedar symbolic analyzer...
   deployed Cedar policy where payments:transfer:bank-account is permitted without
   context.acr == "urn:mfa".
 
-Proof artifact written: govops/proofs/GOVOPS-INT-01.02-2026-05-14.json
+Proof artifact written: govops/proofs/GOVOPS-ID-01.02-2026-05-14.json
 Evaluation log updated: govops/evidence/eval-log-acme-2026-05-14.yaml
 ```
 
@@ -736,7 +736,7 @@ The proof artifact:
 
 ```json
 {
-  "claim-id": "GOVOPS-INT-01.02",
+  "claim-id": "GOVOPS-ID-01.02",
   "capability-id": "payments:transfer:bank-account",
   "formula": "Permit(action=transfer, resource=BankAccount) AND context.acr != 'urn:mfa'",
   "result": "UNSAT",
@@ -759,7 +759,7 @@ metadata:
   id: log.acme.ec.integrity.2026-05-14
   type: EvaluationLog
   gemara-version: "0.x"
-  description: Evaluation of GOVOPS-INT-01 against deployed Cedar policy.
+  description: Evaluation of GOVOPS-ID-01 against deployed Cedar policy.
 target:
   id: prod.payments.v1.4.2
   name: Payments service (production)
@@ -769,9 +769,9 @@ result: Pass
 evidence:
   - type: Proof
     artifact:
-      reference-id: proofs/GOVOPS-INT-01.02-2026-05-14.json
+      reference-id: proofs/GOVOPS-ID-01.02-2026-05-14.json
       hash: sha256:b7d4e2f1a8c5d9e3f6b0c4d7e1f5a9c3d6e0f4b8c2d5e9f3a7b1c4d8e2f6a0b4
-    claim-id: GOVOPS-INT-01.02
+    claim-id: GOVOPS-ID-01.02
     result: UNSAT
     policy-hash: sha256:a3f8c2d1e9b047f6a2c5d8e1f3b6a9c2d5e8f1b4a7c0d3e6f9b2c5d8e1f4a7c0
   - type: DecisionLog
@@ -789,14 +789,14 @@ against this policy returns SAT with a counterexample.
 
 ```
 $ govops prove \
-    --claim GOVOPS-INT-01.02 \
+    --claim GOVOPS-ID-01.02 \
     --catalog govops/GovOps-AC.yaml \
     --policy govops/policies/payments-cedar-with-bypass.cedar \
     --engine cedar \
     --output govops/proofs/
 
 govops prove v0.9.0
-Claim:    GOVOPS-INT-01.02
+Claim:    GOVOPS-ID-01.02
 Engine:   cedar
 Policy:   govops/policies/payments-cedar-with-bypass.cedar
 Hash:     sha256:f1e2d3c4b5a6978869504132231415161718192021222324252627282930313233
@@ -814,7 +814,7 @@ Invoking Cedar symbolic analyzer...
     Context:    { "acr": "urn:password-only", "service-account": true }
 
   The Cedar policy contains a rule that permits transfers for service accounts
-  without requiring context.acr == "urn:mfa". This violates GOVOPS-INT-01.02.
+  without requiring context.acr == "urn:mfa". This violates GOVOPS-ID-01.02.
 
 PROOF FAILED — claim not satisfied. No proof artifact written.
 EXIT 1
@@ -867,20 +867,20 @@ pipeline (UC-08):
 
 ```
 $ govops prove \
-    --claim GOVOPS-INT-01.02 \
+    --claim GOVOPS-ID-01.02 \
     --catalog govops/GovOps-AC.yaml \
     --policy govops/policies/payments-cedar.cedar \
     --engine cedar \
     --output govops/proofs/
 
 govops prove v0.9.0
-Claim:    GOVOPS-INT-01.02
+Claim:    GOVOPS-ID-01.02
 Engine:   cedar
 Policy:   govops/policies/payments-cedar.cedar
 Hash:     sha256:9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7
 
 WARNING: Stale proof detected.
-  Existing proof: govops/proofs/GOVOPS-INT-01.02-2026-05-14.json
+  Existing proof: govops/proofs/GOVOPS-ID-01.02-2026-05-14.json
   Proof policy hash:   sha256:a3f8c2d1e9b047f6a2c5d8e1f3b6a9c2d5e8f1b4a7c0d3e6f9b2c5d8e1f4a7c0
   Current policy hash: sha256:9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7
   The proof is no longer valid for the current policy. Re-running analysis...
@@ -888,28 +888,28 @@ WARNING: Stale proof detected.
 Invoking Cedar symbolic analyzer...
   Result: UNSAT
 
-Proof artifact written: govops/proofs/GOVOPS-INT-01.02-2026-05-28.json
+Proof artifact written: govops/proofs/GOVOPS-ID-01.02-2026-05-28.json
 Evaluation log updated: govops/evidence/eval-log-acme-2026-05-28.yaml
 ```
 
 The stale proof is replaced with a fresh one anchored to the new policy hash. The
-TIGER Integrity pillar score (which had dropped when the stale proof was detected)
+TIGER Identity pillar score (which had dropped when the stale proof was detected)
 recovers after the refresh (UC-04).
 
 ### Artifacts Produced or Modified
 
 | Artifact | Gemara type | Path | Notes |
 |---|---|---|---|
-| Cedar proof (UNSAT) | Proof artifact | `govops/proofs/GOVOPS-INT-01.02-2026-05-14.json` | Created by `govops prove` |
+| Cedar proof (UNSAT) | Proof artifact | `govops/proofs/GOVOPS-ID-01.02-2026-05-14.json` | Created by `govops prove` |
 | OpenFGA proof (UNSAT) | Proof artifact | `govops/proofs/GOVOPS-RS-01.01-2026-05-14.json` | Created by `govops prove` |
 | Evaluation log | `#EvaluationLog` | `govops/evidence/eval-log-acme-2026-05-14.yaml` | Updated with `#ArtifactMapping` entries |
-| Refreshed Cedar proof | Proof artifact | `govops/proofs/GOVOPS-INT-01.02-2026-05-28.json` | Replaces stale proof after policy redeploy |
+| Refreshed Cedar proof | Proof artifact | `govops/proofs/GOVOPS-ID-01.02-2026-05-28.json` | Replaces stale proof after policy redeploy |
 
 ### Correctness Properties Demonstrated
 
 - **P1 (Capability ID Format):** `payments:transfer:bank-account` and `iam:assume:role`
   both match the three-segment format throughout.
-- **P2 (AssessmentRequirement ID Format):** `GOVOPS-INT-01.02` and `GOVOPS-RS-01.01`
+- **P2 (AssessmentRequirement ID Format):** `GOVOPS-ID-01.02` and `GOVOPS-RS-01.01`
   match `^GOVOPS-[A-Z]+-[0-9]+\.[0-9]+$`.
 - **P4 (PARC Context Predicate Consistency):** The counterexample PARC Context
   `{ "acr": "urn:password-only" }` is consistent with the capability's
@@ -933,7 +933,7 @@ recovers after the refresh (UC-04).
 | Cedar PDP class | Design §8.1 (policy-language PDP) |
 | OpenFGA PDP class | Design §8.1 (graph/relationship PDP) |
 | Stale proof detection | Design §9.1 (policy hash in score computation) |
-| TIGER Integrity pillar | Design §7.2 |
+| TIGER Identity pillar | Design §7.2 |
 
 
 ---
@@ -969,7 +969,7 @@ no single aggregate TIGER score.
 $ govops tiger \
     --catalog govops/GovOps-AC.yaml \
     --controls govops/GovOps-Transparency.yaml \
-                govops/GovOps-Integrity.yaml \
+                govops/GovOps-Identity.yaml \
                 govops/GovOps-Governance.yaml \
                 govops/GovOps-Events.yaml \
                 govops/GovOps-Resilience.yaml \
@@ -982,7 +982,7 @@ govops tiger v0.9.0
 Computing TIGER pillar scores for Acme Bank (2026-05-14)...
 
   Transparency  : 3 / 5  (2 of 2 requirements satisfied; limited to medium-risk capabilities)
-  Integrity     : 4 / 5  (2 of 2 requirements satisfied for payments:transfer:bank-account)
+  Identity     : 4 / 5  (2 of 2 requirements satisfied for payments:transfer:bank-account)
   Governance    : 3 / 5  (1 of 3 requirements satisfied; 2 provable claims pending)
   Events        : 3 / 5  (2 of 3 requirements satisfied; replay not yet verified)
   Resilience    : 3 / 5  (2 of 3 requirements satisfied; fail-closed not yet proven)
@@ -1022,8 +1022,8 @@ score:
 | 4 | Managed | All critical capabilities governed; most provable claims satisfied with current proofs |
 | 5 | Optimizing | All capabilities governed; all provable claims satisfied; continuous proof refresh in CI/CD |
 
-The Integrity pillar scores 4 because both `GOVOPS-INT-01.01` (configuration assertion)
-and `GOVOPS-INT-01.02` (provable claim) are satisfied for `payments:transfer:bank-account`.
+The Identity pillar scores 4 because both `GOVOPS-ID-01.01` (configuration assertion)
+and `GOVOPS-ID-01.02` (provable claim) are satisfied for `payments:transfer:bank-account`.
 The Governance pillar scores 3 because `GOVOPS-GV-01.02` and `GOVOPS-GV-01.03` are
 not yet satisfied.
 
@@ -1064,23 +1064,23 @@ not yet satisfied.
       "score": 4,
       "requirements": [
         {
-          "id": "GOVOPS-INT-01.01",
+          "id": "GOVOPS-ID-01.01",
           "capability": "payments:transfer:bank-account",
           "status": "satisfied",
           "evidence-type": "DecisionLog",
           "evidence-ref": "evidence/payments-decisions-2026-05-14.json"
         },
         {
-          "id": "GOVOPS-INT-01.02",
+          "id": "GOVOPS-ID-01.02",
           "capability": "payments:transfer:bank-account",
           "status": "satisfied",
           "evidence-type": "Proof",
-          "evidence-ref": "proofs/GOVOPS-INT-01.02-2026-05-14.json",
+          "evidence-ref": "proofs/GOVOPS-ID-01.02-2026-05-14.json",
           "proof-result": "UNSAT",
           "policy-hash": "sha256:a3f8c2d1e9b047f6a2c5d8e1f3b6a9c2d5e8f1b4a7c0d3e6f9b2c5d8e1f4a7c0"
         }
       ],
-      "notes": "Score 4: all declared Integrity requirements satisfied. Score would reach 5 when Integrity controls are extended to governance:policy-write:governance-policy."
+      "notes": "Score 4: all declared Identity requirements satisfied. Score would reach 5 when Identity controls are extended to governance:policy-write:governance-policy."
     },
     "governance": {
       "score": 3,
@@ -1145,14 +1145,14 @@ Running `govops tiger` shows the Transparency and Events pillar scores decrease:
 $ govops tiger  # after adding payments:refund:payment with no controls
 
   Transparency  : 2 / 5  ← decreased (new high-risk capability has no Transparency control)
-  Integrity     : 3 / 5  ← decreased (new high-risk capability has no Integrity control)
+  Identity     : 3 / 5  ← decreased (new high-risk capability has no Identity control)
   Governance    : 3 / 5  (unchanged)
   Events        : 2 / 5  ← decreased (new capability has no Events control)
   Resilience    : 3 / 5  (unchanged)
 
 Gap identified in tiger-evidence.json:
   "notes": "Score decreased: payments:refund:payment (risk-tier: high) has no
-            AssessmentRequirement in Transparency, Integrity, or Events pillars."
+            AssessmentRequirement in Transparency, Identity, or Events pillars."
 ```
 
 The `notes` field in `tiger-evidence.json` identifies the specific gap in catalog
@@ -1161,20 +1161,20 @@ terms, making it actionable.
 **Step 5 — Score decrease when a proof is invalidated.**
 
 After the payments Cedar policy is redeployed (new hash), the existing proof for
-`GOVOPS-INT-01.02` becomes stale. Before `govops prove` is re-run, `govops tiger`
-detects the stale proof and decreases the Integrity score:
+`GOVOPS-ID-01.02` becomes stale. Before `govops prove` is re-run, `govops tiger`
+detects the stale proof and decreases the Identity score:
 
 ```
 $ govops tiger  # after policy redeploy, before govops prove refresh
 
-  Integrity     : 3 / 5  ← decreased (GOVOPS-INT-01.02 proof is stale: policy hash mismatch)
+  Identity     : 3 / 5  ← decreased (GOVOPS-ID-01.02 proof is stale: policy hash mismatch)
 
   tiger-evidence.json notes:
-    "GOVOPS-INT-01.02: proof stale. Proof policy hash sha256:a3f8... does not match
+    "GOVOPS-ID-01.02: proof stale. Proof policy hash sha256:a3f8... does not match
      current policy hash sha256:9e8d.... Re-run govops prove to refresh."
 ```
 
-After `govops prove` refreshes the proof (UC-03 Step 6), the Integrity score returns
+After `govops prove` refreshes the proof (UC-03 Step 6), the Identity score returns
 to 4.
 
 **Step 6 — Governance review meeting: TIGER scores + Policy Coverage together.**
@@ -1185,7 +1185,7 @@ At the monthly governance review, the GRC Practitioner presents both metrics:
 |---|---|---|
 | Policy Coverage | 67% (10/15 requirements satisfied) | Fraction of declared requirements currently satisfied |
 | Transparency score | 3/5 | Maturity of decision observability governance |
-| Integrity score | 4/5 | Maturity of context/evidence precondition governance |
+| Identity score | 4/5 | Maturity of context/evidence precondition governance |
 | Governance score | 3/5 | Maturity of governance-plane authority controls |
 | Events score | 3/5 | Maturity of decision telemetry governance |
 | Resilience score | 3/5 | Maturity of degraded-mode enforcement governance |
@@ -1214,7 +1214,7 @@ expressed in catalog terms.
 
 - **P2 (AssessmentRequirement ID Format):** All requirement ids in `tiger-evidence.json`
   match `^GOVOPS-[A-Z]+-[0-9]+\.[0-9]+$`.
-- **P3 (TIGER Score Integrity):** `tiger-score.yaml` contains exactly five per-pillar
+- **P3 (TIGER Score Identity):** `tiger-score.yaml` contains exactly five per-pillar
   integer scores (`transparency: 3`, `integrity: 4`, `governance: 3`, `events: 3`,
   `resilience: 3`), all in {1, 2, 3, 4, 5}. No `aggregate` field is present.
 - **P8 (Identity Pillar Non-Prescription):** The use case explicitly notes that the
@@ -1266,7 +1266,7 @@ implies about assurance level.
 **Step 1 — Review the `#MappingDocument` linking TIGER controls to NIST 800-53 and ISO 27001.**
 
 The GRC Practitioner has authored `govops/mappings/govops-to-nist-iso.yaml` mapping
-TIGER Integrity and Governance controls to NIST 800-53 AC-3 and ISO 27001 A.5.15.
+TIGER Identity and Governance controls to NIST 800-53 AC-3 and ISO 27001 A.5.15.
 
 ```yaml
 # govops/mappings/govops-to-nist-iso.yaml
@@ -1276,14 +1276,14 @@ metadata:
   type: MappingDocument
   gemara-version: "0.x"
   description: >
-    Maps GovOps TIGER Integrity and Governance controls to NIST SP 800-53 Rev. 5
+    Maps GovOps TIGER Identity and Governance controls to NIST SP 800-53 Rev. 5
     and ISO/IEC 27001:2022 controls.
   author: { id: acme-grc, name: Acme GRC Team, type: Software Assisted }
   mapping-references:
     - id: govops-int
-      title: GovOps Integrity Catalog
+      title: GovOps Identity Catalog
       version: "0.1"
-      url: govops/GovOps-Integrity.yaml
+      url: govops/GovOps-Identity.yaml
     - id: govops-gv
       title: GovOps Governance Catalog
       version: "0.1"
@@ -1302,13 +1302,13 @@ target-reference:
   entry-type: Control
 mappings:
   - id: m.int.ac3
-    source: GOVOPS-INT-01
+    source: GOVOPS-ID-01
     relationship: implements
     targets:
       - entry-id: AC-3
         rationale: >
           Access enforcement on sensitive (action, resource) capabilities.
-          GOVOPS-INT-01 requires that high-risk capabilities enforce authentication
+          GOVOPS-ID-01 requires that high-risk capabilities enforce authentication
           context preconditions on PARC requests.
         confidence-level: High
       - entry-id: IA-2(1)
@@ -1317,7 +1317,7 @@ mappings:
           (action, resource) pairs.
         confidence-level: High
   - id: m.int.iso
-    source: GOVOPS-INT-01
+    source: GOVOPS-ID-01
     relationship: implements
     targets:
       - entry-id: A.5.15
@@ -1358,7 +1358,7 @@ The auditor runs a query against the mapping document and capability catalog:
 ```
 $ govops coverage \
     --catalog govops/GovOps-AC.yaml \
-    --controls govops/GovOps-Integrity.yaml govops/GovOps-Governance.yaml \
+    --controls govops/GovOps-Identity.yaml govops/GovOps-Governance.yaml \
     --mappings govops/mappings/govops-to-nist-iso.yaml \
     --query "risk-tier >= high AND no-control-mapped-to AC-3"
 
@@ -1371,11 +1371,11 @@ Results:
       risk-tier: high
       sensitivity: internal
       TIGER controls: GOVOPS-RS-01 (Resilience only)
-      AC-3 mapping: NONE — no Integrity or Governance control mapped to AC-3 for this capability
+      AC-3 mapping: NONE — no Identity or Governance control mapped to AC-3 for this capability
 
   ✓ payments:transfer:bank-account
       risk-tier: critical
-      TIGER controls: GOVOPS-INT-01 (mapped to AC-3 via m.int.ac3)
+      TIGER controls: GOVOPS-ID-01 (mapped to AC-3 via m.int.ac3)
       AC-3 mapping: PRESENT
 
   ✓ governance:policy-write:governance-policy
@@ -1387,7 +1387,7 @@ Results:
 ```
 
 The auditor identifies `iam:assume:role` as a gap and requests that the GRC
-Practitioner author an Integrity control for it before the audit closes.
+Practitioner author an Identity control for it before the audit closes.
 
 **Step 3 — Evidence trace: from compliance control id to proof artifact.**
 
@@ -1397,14 +1397,14 @@ The auditor requests evidence for NIST AC-3 compliance for
 ```
 Compliance control:  NIST AC-3 (Access Enforcement)
         ↓ via MappingDocument map.acme.govops.nist-iso (mapping m.int.ac3)
-TIGER control:       GOVOPS-INT-01 (Sensitive capabilities require strong authentication evidence)
+TIGER control:       GOVOPS-ID-01 (Sensitive capabilities require strong authentication evidence)
         ↓ assessment-requirements
-AssessmentRequirement: GOVOPS-INT-01.01 (configuration assertion)
-                       GOVOPS-INT-01.02 (provable claim)
+AssessmentRequirement: GOVOPS-ID-01.01 (configuration assertion)
+                       GOVOPS-ID-01.02 (provable claim)
         ↓ via EvaluationLog log.acme.ec.integrity.2026-05-14
 EvaluationLog:       govops/evidence/eval-log-acme-2026-05-14.yaml
         ↓ evidence entries (ArtifactMapping)
-Proof artifact:      govops/proofs/GOVOPS-INT-01.02-2026-05-14.json
+Proof artifact:      govops/proofs/GOVOPS-ID-01.02-2026-05-14.json
                      result: UNSAT, policy-hash: sha256:a3f8...
 Decision log:        govops/evidence/payments-decisions-2026-05-14.json
                      1,247 Permit decisions, all with context.acr=urn:mfa
@@ -1431,11 +1431,11 @@ The auditor encounters two satisfied requirements for `payments:transfer:bank-ac
 
 | Requirement | Evidence type | Assurance level |
 |---|---|---|
-| `GOVOPS-INT-01.01` | `DecisionLog` (observable claim) | **Observed:** the control was present and exercised in the reporting window. Does not prove the control is sufficient for all possible requests. |
-| `GOVOPS-INT-01.02` | `Proof` (symbolic proof, UNSAT) | **Proved:** no authorization path exists in the deployed policy where the capability is permitted without `context.acr == 'urn:mfa'`. Stronger assurance than observation alone. |
+| `GOVOPS-ID-01.01` | `DecisionLog` (observable claim) | **Observed:** the control was present and exercised in the reporting window. Does not prove the control is sufficient for all possible requests. |
+| `GOVOPS-ID-01.02` | `Proof` (symbolic proof, UNSAT) | **Proved:** no authorization path exists in the deployed policy where the capability is permitted without `context.acr == 'urn:mfa'`. Stronger assurance than observation alone. |
 
-The auditor notes that `GOVOPS-INT-01.01` (observable) provides evidence of *presence*;
-`GOVOPS-INT-01.02` (symbolic proof) provides evidence of *sufficiency*. Both are
+The auditor notes that `GOVOPS-ID-01.01` (observable) provides evidence of *presence*;
+`GOVOPS-ID-01.02` (symbolic proof) provides evidence of *sufficiency*. Both are
 recorded in the evaluation log; the proof artifact is the higher-assurance evidence.
 For a SOC 2 Type II audit, the decision log covers the observation period; for a
 security assessment, the UNSAT proof is the stronger artifact.
@@ -1450,9 +1450,9 @@ security assessment, the UNSAT proof is the stronger artifact.
 
 - **P1 (Capability ID Format):** All capability ids in the mapping and query output
   match the three-segment format.
-- **P2 (AssessmentRequirement ID Format):** `GOVOPS-INT-01.01`, `GOVOPS-INT-01.02`,
+- **P2 (AssessmentRequirement ID Format):** `GOVOPS-ID-01.01`, `GOVOPS-ID-01.02`,
   `GOVOPS-GV-01.01`–`GOVOPS-GV-01.03` all match the format regex.
-- **P5 (Proof Logical Consistency):** The UNSAT proof for `GOVOPS-INT-01.02` is
+- **P5 (Proof Logical Consistency):** The UNSAT proof for `GOVOPS-ID-01.02` is
   accompanied by the claim whose negation was checked; no counterexample is shown
   because the result is UNSAT.
 - **P6 (Lint/Coverage Output Consistency):** The `govops coverage` query output
@@ -1945,7 +1945,7 @@ pipeline:
     - name: coverage
       command: govops coverage
       args: [--catalog, govops/GovOps-AC.yaml,
-             --controls, govops/GovOps-Integrity.yaml, govops/GovOps-Governance.yaml,
+             --controls, govops/GovOps-Identity.yaml, govops/GovOps-Governance.yaml,
                          govops/GovOps-Events.yaml, govops/GovOps-Resilience.yaml,
              --evidence, govops/evidence/, --proofs, govops/proofs/]
     - name: drift
@@ -1960,7 +1960,7 @@ pipeline:
     - name: tiger
       command: govops tiger
       args: [--catalog, govops/GovOps-AC.yaml,
-             --controls, govops/GovOps-Transparency.yaml, govops/GovOps-Integrity.yaml,
+             --controls, govops/GovOps-Transparency.yaml, govops/GovOps-Identity.yaml,
                          govops/GovOps-Governance.yaml, govops/GovOps-Events.yaml,
                          govops/GovOps-Resilience.yaml,
              --evidence, govops/evidence/, --proofs, govops/proofs/,
@@ -2043,7 +2043,7 @@ Step 4: govops prove
   Re-evaluating affected claims for changed policy: payments-cedar.cedar
   Hash: sha256:7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5
 
-  GOVOPS-INT-01.02  payments:transfer:bank-account  → UNSAT  ✓ (proof refreshed)
+  GOVOPS-ID-01.02  payments:transfer:bank-account  → UNSAT  ✓ (proof refreshed)
   GOVOPS-GV-01.02   governance:policy-write:governance-policy → UNSAT  ✓ (new proof)
 
   2 proofs refreshed. 0 failures.
@@ -2068,7 +2068,7 @@ policy change in the same pull request:
 ```
 PR #512 — files changed:
   govops/policies/payments-cedar.cedar          (policy change)
-  govops/proofs/GOVOPS-INT-01.02-2026-05-28.json  (refreshed proof)
+  govops/proofs/GOVOPS-ID-01.02-2026-05-28.json  (refreshed proof)
   govops/proofs/GOVOPS-GV-01.02-2026-05-28.json   (new proof)
   govops/evidence/eval-log-acme-2026-05-28.yaml   (updated evaluation log)
   govops/tiger/tiger-score.yaml                   (updated TIGER scores)
@@ -2086,13 +2086,13 @@ The `govops prove` step handles this according to the capability's risk-tier:
 
 ```
 Step 4: govops prove
-  Invoking Cedar symbolic analyzer for GOVOPS-INT-01.02...
+  Invoking Cedar symbolic analyzer for GOVOPS-ID-01.02...
   ERROR: Cedar analyzer service unavailable (connection timeout after 30s)
 
   Applying degraded-mode policy:
     payments:transfer:bank-account  risk-tier: critical
       → FAIL-CLOSED: proof cannot be refreshed; treating as UNSATISFIED
-      → Integrity pillar score will reflect missing proof
+      → Identity pillar score will reflect missing proof
 
     payments:read:invoice-summary  risk-tier: low
       → DEGRADE GRACEFULLY: using last known proof (may be stale)
@@ -2112,7 +2112,7 @@ The TIGER score reflects the missing proof:
 # govops/tiger/tiger-score.yaml (degraded run)
 score:
   transparency: 3
-  integrity: 3   # ← decreased from 4: GOVOPS-INT-01.02 proof unavailable (fail-closed)
+  integrity: 3   # ← decreased from 4: GOVOPS-ID-01.02 proof unavailable (fail-closed)
   governance: 4
   events: 3
   resilience: 3
@@ -2125,7 +2125,7 @@ score:
     "score": 3,
     "requirements": [
       {
-        "id": "GOVOPS-INT-01.02",
+        "id": "GOVOPS-ID-01.02",
         "capability": "payments:transfer:bank-account",
         "status": "unsatisfied",
         "notes": "Proof unavailable: Cedar analyzer service unreachable. Fail-closed applied for critical capability. Score decreased until proof is refreshed."
@@ -2136,14 +2136,14 @@ score:
 ```
 
 Once the analyzer recovers, the pipeline re-runs `govops prove`, refreshes the proof,
-and the Integrity score returns to 4.
+and the Identity score returns to 4.
 
 ### Artifacts Produced or Modified
 
 | Artifact | Gemara type | Path | Notes |
 |---|---|---|---|
 | CI/CD config | Convention | `govops/.govops-ci.yaml` | Created; defines pipeline and gate thresholds |
-| Refreshed proofs | Proof artifacts | `govops/proofs/GOVOPS-INT-01.02-2026-05-28.json`, `govops/proofs/GOVOPS-GV-01.02-2026-05-28.json` | Created/updated by `govops prove` in pipeline |
+| Refreshed proofs | Proof artifacts | `govops/proofs/GOVOPS-ID-01.02-2026-05-28.json`, `govops/proofs/GOVOPS-GV-01.02-2026-05-28.json` | Created/updated by `govops prove` in pipeline |
 | Updated evaluation log | `#EvaluationLog` | `govops/evidence/eval-log-acme-2026-05-28.yaml` | Updated by `govops prove` |
 | Updated TIGER scores | Derived | `govops/tiger/tiger-score.yaml`, `govops/tiger/tiger-evidence.json` | Updated by `govops tiger` |
 
@@ -2151,12 +2151,12 @@ and the Integrity score returns to 4.
 
 - **P1 (Capability ID Format):** All capability ids in pipeline output match the
   three-segment format.
-- **P2 (AssessmentRequirement ID Format):** `GOVOPS-INT-01.02`, `GOVOPS-GV-01.02`,
+- **P2 (AssessmentRequirement ID Format):** `GOVOPS-ID-01.02`, `GOVOPS-GV-01.02`,
   `GOVOPS-GV-01.03`, `GOVOPS-EV-01.03` all match the format regex.
-- **P3 (TIGER Score Integrity):** Both the normal-run and degraded-run `tiger-score.yaml`
+- **P3 (TIGER Score Identity):** Both the normal-run and degraded-run `tiger-score.yaml`
   contain exactly five per-pillar integer scores in {1, 2, 3, 4, 5} with no aggregate
   field. The degraded-run score correctly shows `integrity: 3` (decreased from 4).
-- **P5 (Proof Logical Consistency):** The UNSAT results for `GOVOPS-INT-01.02` and
+- **P5 (Proof Logical Consistency):** The UNSAT results for `GOVOPS-ID-01.02` and
   `GOVOPS-GV-01.02` in Step 3 are accompanied by the claims whose negations were
   checked; no counterexamples are shown because both results are UNSAT.
 
@@ -2180,12 +2180,12 @@ and the Integrity score returns to 4.
 | Use Case | Primary Persona | TIGER Pillars Exercised | Policy Coverage Relevance | Toolchain Commands | Design §§ Referenced |
 |---|---|---|---|---|---|
 | UC-01: Capability Catalog Authoring | Platform Security Engineer | None (foundational) | Establishes the capability surface that coverage is measured against | `govops lint` | §6.2, §6.3, §6.4, §12 |
-| UC-02: TIGER Control Authoring and Policy Coverage | GRC Practitioner | Integrity, Governance, Resilience | Directly: shows Policy Coverage metric, gap detection, and prioritization | `govops coverage` | §7, §8, §9, §12 |
-| UC-03: Provable Claims and Proof Workflow | Platform Security Engineer | Integrity, Resilience | Satisfying provable claims improves coverage and pillar scores | `govops prove` | §8.1, §8.2, §8.3, §12 |
+| UC-02: TIGER Control Authoring and Policy Coverage | GRC Practitioner | Identity, Governance, Resilience | Directly: shows Policy Coverage metric, gap detection, and prioritization | `govops coverage` | §7, §8, §9, §12 |
+| UC-03: Provable Claims and Proof Workflow | Platform Security Engineer | Identity, Resilience | Satisfying provable claims improves coverage and pillar scores | `govops prove` | §8.1, §8.2, §8.3, §12 |
 | UC-04: TIGER Pillar Score Computation and Reporting | GRC Practitioner | All five pillars | Shows Policy Coverage alongside TIGER scores in governance review | `govops tiger` | §9.1–9.4, §12 |
-| UC-05: Compliance Mapping and Audit | Compliance Auditor | Integrity, Governance | Coverage gaps surface as compliance risks in audit queries | `govops coverage` (query mode) | §11, §12 |
+| UC-05: Compliance Mapping and Audit | Compliance Auditor | Identity, Governance | Coverage gaps surface as compliance risks in audit queries | `govops coverage` (query mode) | §11, §12 |
 | UC-06: IGA Integration | IGA Team | None directly | Risk-tier/sensitivity groups (which drive coverage bucketing) scope IGA reviews | IGA Exporter, `govops drift` | §6.3, §12 |
-| UC-07: Policy Drift Detection | Platform Security Engineer | Integrity (Type C drift) | Drift findings may indicate ungoverned capabilities (coverage gaps) | `govops drift` | §12, §13 |
+| UC-07: Policy Drift Detection | Platform Security Engineer | Identity (Type C drift) | Drift findings may indicate ungoverned capabilities (coverage gaps) | `govops drift` | §12, §13 |
 | UC-08: Continuous TIGER in CI/CD | Platform Security Engineer | All five pillars | Coverage gate (70% minimum) is a hard pipeline gate | `govops lint`, `govops coverage`, `govops drift`, `govops prove`, `govops tiger` | §12, §13 |
 
 ---
@@ -2195,12 +2195,12 @@ and the Integrity score returns to 4.
 | Use Case | Design §§ | Gemara Artifact Types | TIGER Pillar Controls | Toolchain Commands |
 |---|---|---|---|---|
 | UC-01 | §6.2(A), §6.2(B), §6.3, §6.4, §12 | `#CapabilityCatalog`, `#EnterpriseCapability`, `#Lexicon`, `#Group` | None | `govops lint` |
-| UC-02 | §7, §7.2, §7.3, §7.5, §8, §9, §12 | `#ControlCatalog`, `#AssessmentRequirement`, `#MultiEntryMapping` | `GOVOPS-INT-01`, `GOVOPS-GV-01`, `GOVOPS-RS-01` | `govops coverage` |
-| UC-03 | §8.1, §8.2, §8.3, §12 | `#EvaluationLog`, `#ArtifactMapping`, `#Evidence` (Proof, DecisionLog) | `GOVOPS-INT-01.02`, `GOVOPS-RS-01.01` | `govops prove` |
+| UC-02 | §7, §7.2, §7.3, §7.5, §8, §9, §12 | `#ControlCatalog`, `#AssessmentRequirement`, `#MultiEntryMapping` | `GOVOPS-ID-01`, `GOVOPS-GV-01`, `GOVOPS-RS-01` | `govops coverage` |
+| UC-03 | §8.1, §8.2, §8.3, §12 | `#EvaluationLog`, `#ArtifactMapping`, `#Evidence` (Proof, DecisionLog) | `GOVOPS-ID-01.02`, `GOVOPS-RS-01.01` | `govops prove` |
 | UC-04 | §9.1–9.4, §12 | `#EvaluationLog`, `tiger-score.yaml`, `tiger-evidence.json` | All five pillars | `govops tiger` |
-| UC-05 | §11, §12 | `#MappingDocument`, `#EntryMapping`, `#EvaluationLog` | `GOVOPS-INT-01`, `GOVOPS-GV-01` | `govops coverage` |
+| UC-05 | §11, §12 | `#MappingDocument`, `#EntryMapping`, `#EvaluationLog` | `GOVOPS-ID-01`, `GOVOPS-GV-01` | `govops coverage` |
 | UC-06 | §6.3, §12 | `#CapabilityCatalog`, IGA export (CSV/SCIM/OSCAL) | None directly | IGA Exporter, `govops drift` |
-| UC-07 | §12, §13 | `#CapabilityCatalog`, deployed policy artifacts | `GOVOPS-INT-01` (Type C) | `govops drift` |
+| UC-07 | §12, §13 | `#CapabilityCatalog`, deployed policy artifacts | `GOVOPS-ID-01` (Type C) | `govops drift` |
 | UC-08 | §12, §13 | All artifact types | All five pillars | `govops lint`, `govops coverage`, `govops drift`, `govops prove`, `govops tiger` |
 
 ---
