@@ -149,7 +149,6 @@ govops/
   tiger/
     tiger-score.yaml                 # latest derived TIGER score
     tiger-evidence.json              # inputs the score was computed from
-    identity-proficiency.yaml        # latest 1–5 scores: human, software, organizational
 ```
 
 Mapping each top-level item to a Gemara artifact type:
@@ -159,8 +158,7 @@ Mapping each top-level item to a Gemara artifact type:
 | `lexicon.yaml` | `#Lexicon` | Canonical action verbs and resource type names. |
 | `metadata.yaml` | shared `#Metadata` includes | Author, version, lexicon reference, applicability groups. |
 | `GovOps-AC.yaml` | `#CapabilityCatalog` of `#EnterpriseCapability` | Enterprise authorization surface. |
-| `GovOps-{T,I,G,E,R}.yaml` | `#ControlCatalog` | Pillar-scoped requirements; **Identity** (`GovOps-Identity.yaml`) additionally defines 1–5 proficiency for human, software, and organizational principals. |
-| `tiger/identity-proficiency.yaml` | convention | Latest **1–5** identity class scores and normalized Identity pillar input to TIGER. |
+| `GovOps-{T,I,G,E,R}.yaml` | `#ControlCatalog` | Pillar-scoped requirements; **Identity** (`GovOps-Identity.yaml`) additionally records **1–5** proficiency scores for human, software, and organizational principals. |
 | `policies/` | engine-specific files | Source of truth for what the deployed PDPs evaluate. |
 | `proofs/` | logical certificates referenced from `#EvaluationLog.evidence` | Per-claim UNSAT proofs or counterexamples. |
 | `evidence/` | runtime data referenced from `#Evidence` entries | Decision logs, attestations feeding evaluations. |
@@ -429,7 +427,7 @@ This pillar is **orthogonal to the capability catalog**: it does not redefine **
 
 #### Proficiency scale (1–5)
 
-Each class receives an integer score from **1** (ad hoc / immature) to **5** (optimized, measured, continuously improved). Scores are **authored or assessed** per reporting period and recorded in `tiger/identity-proficiency.yaml` (and referenced from `#EvaluationLog` evidence). The **Identity pillar score** used in aggregate TIGER (§9) is the **mean of the three class scores, normalized to 0–1** (`mean / 5`).
+Each class receives an integer score from **1** (ad hoc / immature) to **5** (optimized, measured, continuously improved). Scores are **authored or assessed** per reporting period and recorded in **`GovOps-Identity.yaml`** under a `proficiency` block (and may be referenced from `#EvaluationLog` evidence). The **Identity pillar score** used in aggregate TIGER (§9) is the **mean of the three class scores, normalized to 0–1** (`mean / 5`).
 
 | Score | Label | Human (examples) | Software (examples) | Organizational (examples) |
 |:---:|---|---|---|---|
@@ -517,29 +515,22 @@ controls:
           organizational attributes are available to policy via PARC Context.
         applicability: [enterprise]
         state: Active
-```
-
-Example proficiency artifact (not a Gemara catalog type today; convention for tooling):
-
-```yaml
-# tiger/identity-proficiency.yaml
-metadata:
-  id: identity-proficiency.acme.2026-05-13
+# GovOps convention: proficiency scores live in the same catalog file (not a separate artifact).
+proficiency:
   reporting-period: "2026-Q2"
   assessed-by: acme-security-architecture
-scores:
-  human: 4
-  software: 3
-  organizational: 3
-  pillar-mean: 3.33
-  pillar-normalized: 0.67   # mean / 5 — feeds TIGER aggregate (§9.2)
-rationale:
-  human: >
-    Enterprise IGA covers 90% of workforce apps; Agama orchestration for customer
-  software: >
-    SPIFFE in Kubernetes production; legacy VMs still use shared keys (remediation tracked).
-  organizational: >
-    Top-20 suppliers federated; BU claims in internal JWT; partner tiering in progress.
+  scores:
+    human: 4
+    software: 3
+    organizational: 3
+  rationale:
+    human: >
+      Enterprise IGA covers 90% of workforce apps; Agama orchestration for customer
+      onboarding; MFA enterprise-wide; PAM for ops admins.
+    software: >
+      SPIFFE in Kubernetes production; legacy VMs still use shared keys (remediation tracked).
+    organizational: >
+      Top-20 suppliers federated; BU claims in internal JWT; partner tiering in progress.
 ```
 
 High-risk **(action, resource)** capabilities in `GovOps-AC` still require **PARC Context** evidence (e.g., `context.acr`, JWT claims) in **deployed policy** — that is enforced by controls in other pillars (Transparency, Governance) and by policy analysis in §8. The Identity pillar answers a prior question: *are the Principals and organizational context trustworthy enough to support those policies?*
@@ -729,7 +720,7 @@ Where:
 score(Identity) = (score_human + score_software + score_org) / (3 * 5)
 ```
 
-Where each of `score_human`, `score_software`, and `score_org` is an integer from **1** to **5** recorded in `tiger/identity-proficiency.yaml`. The denominator **15** is the maximum achievable sum (three classes × 5). Example: human=4, software=3, organizational=3 → `score(Identity) = 10/15 ≈ 0.67`.
+Where each of `score_human`, `score_software`, and `score_org` is an integer from **1** to **5** read from the `proficiency.scores` block in `GovOps-Identity.yaml`. The denominator **15** is the maximum achievable sum (three classes × 5). Example: human=4, software=3, organizational=3 → `score(Identity) = 10/15 ≈ 0.67`.
 
 Pass/fail requirements in `GovOps-Identity.yaml` (e.g., that scores are documented, remediation plans exist when human score is below 3) use the same `status(r)` formula as other pillars and may be tracked separately in `tiger-evidence.json`.
 
@@ -872,19 +863,17 @@ capabilities:
 Acme records quarterly identity proficiency alongside the capability catalog. The **transfer** capability (`payments:transfer:bank-account`) depends on trustworthy **human** principals (MFA in JWT **Context**) and **software** principals (payment processors using workload identity):
 
 ```yaml
-# tiger/identity-proficiency.yaml (excerpt — see §7.2 for full shape)
-metadata:
-  id: identity-proficiency.acme.2026-05-13
+# GovOps-Identity.yaml (proficiency excerpt — see §7.2)
+proficiency:
   reporting-period: "2026-Q2"
-scores:
-  human: 4
-  software: 3
-  organizational: 3
-  pillar-normalized: 0.67
-rationale:
-  human: IGA + Agama orchestration for customer flows; MFA enterprise-wide; PAM for ops admins.
-  software: SPIFFE in K8s payments namespace; legacy batch jobs still on shared keys (remediation Q3).
-  organizational: Federated B2B partners; BU claim in internal tokens; supplier tiering pilot.
+  scores:
+    human: 4
+    software: 3
+    organizational: 3
+  rationale:
+    human: IGA + Agama orchestration for customer flows; MFA enterprise-wide; PAM for ops admins.
+    software: SPIFFE in K8s payments namespace; legacy batch jobs still on shared keys (remediation Q3).
+    organizational: Federated B2B partners; BU claim in internal tokens; supplier tiering pilot.
 ```
 
 ### 10.3 An evaluation log recording policy proof (Transparency / provable claims)
@@ -921,12 +910,8 @@ score:
   E: 0.78
   R: 0.88
   aggregate: 0.84
-identity-proficiency:
-  human: 4
-  software: 3
-  organizational: 3
 notes: |
-  Identity pillar (I=0.67) driven by identity-proficiency.yaml mean 3.33/5.
+  Identity pillar (I=0.67) from GovOps-Identity.yaml proficiency scores (mean 3.33/5).
   Software identity remediation (shared keys on batch) is tracked against GOVOPS-ID-SOFTWARE.01.
   Policy proof for transfer MFA Context satisfied (Transparency); catalog capability unchanged.
 ```
@@ -1030,7 +1015,7 @@ The toolchain is engine-pluggable: each `govops prove` plug-in calls a specific 
 4. **Inheritance and roles.** Should the profile express role to capability mappings, or is that the IGA layer's concern? Current proposal: out of scope for this catalog.
 5. **Versioning of capabilities.** When an enterprise renames or splits a capability, what is the recommended `replaced-by` pattern? `#Control` already has one — should `#EnterpriseCapability` mirror it?
 6. **TIGER weighting.** Default pillar weights and per-control risk weights need community calibration. A weight registry maintained by the WG seems plausible.
-7. **Identity proficiency rubric.** Should the 1–5 scale be standardized in a separate Gemara artifact or remain a GovOps convention in `identity-proficiency.yaml`? Community calibration of level descriptors per industry sector is an open question.
+7. **Identity proficiency rubric.** Should the 1–5 scale and `proficiency` block on `GovOps-Identity.yaml` be standardized in Gemara or remain a GovOps profile extension on `#ControlCatalog`? Community calibration of level descriptors per industry sector is an open question.
 8. **Public reference catalogs.** Who curates "the" reference catalog for, say, GitHub or Kubernetes capabilities? A community process modeled on Vector / Threat catalogs is plausible but needs sponsorship.
 9. **AuthZEN integration depth.** The design uses PARC as an abstraction; should the WG also publish a guidance document showing how an AuthZEN-conformant evaluate response feeds the `Evidence` pipeline?
 

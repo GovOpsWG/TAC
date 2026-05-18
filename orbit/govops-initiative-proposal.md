@@ -97,7 +97,7 @@ The initiative is structured as a multi-phase effort. **Phase 1 (year 1)** deliv
 | # | Deliverable | Type | Target month |
 |---|---|---|---|
 | D1 | EC Profile v0.1 (convention-only over existing `#Capability`) | Gemara YAML + spec | M3 |
-| D2 | TIGER pillar template pack v0.1 (`GovOps-{T,I,G,E,R}.yaml` + `identity-proficiency.yaml` convention) | Gemara YAML | M4 |
+| D2 | TIGER pillar template pack v0.1 (`GovOps-{T,I,G,E,R}.yaml`) | Gemara YAML | M4 |
 | D3 | Reference mapping: ACC ↔ OSPS Baseline | `#MappingDocument` | M5 |
 | D4 | Reference mapping: ACC ↔ NIST 800-53r5 | `#MappingDocument` | M6 |
 | D5 | OSS-project template (small, maintainer-grade) | Gemara YAML | M6 |
@@ -113,7 +113,7 @@ All Gemara artifacts are CC-BY-4.0 (per ORBIT charter §7.b.iv). All code is Apa
 
 Each future phase enters scope only by explicit TSC review per CHARTER §3.c. The list below is illustrative, not committed; it shows the trajectory the initiative anticipates so reviewers can judge fit and longevity.
 
-- **Phase 2 — Provable claims and TIGER metric formalization.** Operationalize the *provable operational claims* discipline outlined in the design document (§8–§9): standardize how a Gemara `#EvaluationLog` carries a `Proof` evidence type; ship reference **`govops prove`** and **`govops tiger`** implementations (per-pillar scores including Identity normalization from `identity-proficiency.yaml`, plus weighted aggregate TIGER per design §9.2); document how **`govops coverage`** requirement-satisfaction reporting complements TIGER (as illustrated in the use cases). Aligns with GovOps's "make risk measurable and comparable" objective.
+- **Phase 2 — Provable claims and TIGER metric formalization.** Operationalize the *provable operational claims* discipline outlined in the design document (§8–§9): standardize how a Gemara `#EvaluationLog` carries a `Proof` evidence type; ship reference **`govops prove`** and **`govops tiger`** implementations (per-pillar scores per design §9.2); document how **`govops coverage`** requirement-satisfaction reporting complements TIGER (as illustrated in the use cases). Aligns with GovOps's "make risk measurable and comparable" objective.
 - **Phase 3 — Reference adapters for common engines.** Engine-neutral remains the rule, but practitioners need integration glue. Phase 3 ships read-only adapters that emit ACC-conformant catalogs from common PDPs (e.g. OPA, Cedar, Zanzibar-style authorization graphs). All adapters are optional and treat their input formats as opaque.
 
 The TSC may add, reorder, or drop any of these. The proposer commits only to the Phase 1 scope in §4.1.
@@ -187,7 +187,7 @@ A separate proposal exists to form a top-level **OpenSSF GovOps Working Group** 
 
 The two efforts share a name and a mission, with a clear separation of concerns:
 
-- **GovOps Initiative (this proposal — ORBIT Technical Initiative):** produces the *artifacts, schema profiles, templates, and tooling* — GovOps repositories (`GovOps-AC`, five TIGER pillar catalogs including **Identity** proficiency scoring, `identity-proficiency.yaml`), mapping documents, conformance criteria, and reference CLI tools. Outputs are Gemara YAML and Apache-2.0 code.
+- **GovOps Initiative (this proposal — ORBIT Technical Initiative):** produces the *artifacts, schema profiles, templates, and tooling* — GovOps repositories (`GovOps-AC`, five TIGER pillar catalogs, mapping documents, conformance criteria, and reference CLI tools. Outputs are Gemara YAML and Apache-2.0 code.
 - **GovOps WG (separately proposed):** produces *framework, metrics model, and operating-model documents* that reference the GovOps Initiative's artifacts. Outputs are predominantly informative documents.
 
 If the GovOps WG proposal is approved, the GovOps Initiative serves as its artifact-producing partner under ORBIT — exactly the pattern OpenSSF already uses for OSPS Baseline (artifacts under ORBIT) alongside the Best Practices WG (framework). If the WG proposal is paused, deferred, or absorbed, the GovOps Initiative continues independently under ORBIT and can be consumed directly by other governance bodies (CNCF GRC, TAG-Security, IGA platforms, GRC vendors).
