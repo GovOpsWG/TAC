@@ -12,6 +12,7 @@
 
 **Related:**
 - GovOps Phase 1 technical design — [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md)
+- GovOps use cases (companion) — [`enterprise-capability-catalog-use-cases.md`](./enterprise-capability-catalog-use-cases.md)
 - OpenID AuthZEN — PARC (Principal, Action, Resource, Context) **authorization request** shape
 - Signed tokens in **PARC Context** — **JSON Web Tokens** ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)) and similar signed artifacts are commonly passed as **evidence** in the request **Context** for PDPs to evaluate when permitting an **(action, resource)** capability.
 
@@ -25,11 +26,11 @@ GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization
 
 The Phase 1 (ACC) deliverables are all expressed as existing Gemara artifact types so they require no Gemara schema changes to begin:
 
-1. An **Enterprise Capability Profile** of `#Capability` — a Gemara `#CapabilityCatalog` whose entries identify capabilities by **`action` and `resource` only** (plus Gemara `#Capability` metadata such as `id`, `title`, `description`, `group`). Optional fields document risk, sensitivity, or expected request context for tooling; see the design document.
-2. A small family of **TIGER metric `#ControlCatalog` templates** — used by governors to assess the risk management, accountability, and transparency levels of the authorization governance program. The **Identity** pillar template (`GovOps-Identity.yaml`) scores **1–5 proficiency** for managing **human**, **software**, and **organizational** principals (IGA, Agama-style orchestration, MFA, PAM; SPIFFE and asymmetric workload auth; third-party and business-unit federation). 
-3. **`#MappingDocument` artifacts** linking ACC content to OSPS Baseline, NIST 800-53, ISO 27001, and SOC 2.
-
-A working design document for Phase 1 already exists in this repository: [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md). It is the technical basis for this proposal.
+1. An **Enterprise Capability Profile** of `#Capability` — a Gemara `#CapabilityCatalog` (`GovOps-AC.yaml`) whose entries identify capabilities by **`action` and `resource` only** (plus Gemara `#Capability` metadata such as `id`, `title`, `description`, `group`). Optional fields document risk, sensitivity, or expected request context for tooling; see the design document.
+2. A **GovOps repository convention** — a `govops/` layout pairing `GovOps-AC.yaml` with five TIGER pillar `#ControlCatalog` files (`GovOps-{Transparency,Identity,Governance,Events,Resilience}.yaml`), plus `policies/`, `proofs/`, `evidence/`, `mappings/`, and `tiger/` (design §5).
+3. A **TIGER pillar template pack** — five `#ControlCatalog` templates and scoring a domain's authorization proficiency by scoring the maturity of it's operations in the areas of **Transparency, Identity, Governance, Events, and Resilience**.
+4. **`#MappingDocument` artifacts** linking ACC and TIGER content to OSPS Baseline, NIST 800-53, ISO 27001, and SOC 2.
+5. **Reference tooling** — `govops lint`, `govops coverage`, and `govops drift` (design §12); companion use cases illustrate `govops prove`, `govops tiger`, and CI/CD gates (formal reference implementations targeted in Phase 2).
 
 GovOps Phase 1 is authorization engine-neutral by construction. The catalog itself is organized around the **(action, resource) capability** — that is the unit governance acts on. At runtime, decisions over the catalog are *requested* in the **PARC** (Principal, Action, Resource, Context) envelope standardized by OpenID AuthZEN, which many PDPs — policy-language, graph, ABAC, hybrid — already speak. The catalog describes what is *governed*, and must work across implementations without privileging any one vendor.
 
@@ -46,7 +47,7 @@ GovOps inverts the order. It catalogues the authorization surface as **capabilit
 Specifically, GovOps:
 - Makes the authorization surface **identifiable** as a finite, addressable set of capability ids.
 - Makes it **presentable** as Gemara YAML/JSON validatable against a stable schema.
-- Makes the requirements over it **interoperable** by expressing them as Gemara `#ControlCatalog` entries with `#MappingDocument` ties to common compliance frameworks.
+- Makes the requirements over it **interoperable** by expressing them as Gemara `#ControlCatalog` entries.
 
 The work is naturally cross-cutting across the four existing TIs (see §5 below), satisfies CHARTER §3.c.i interoperability, and produces durable artifacts in the same style as OSPS Baseline and Security Insights.
 
@@ -63,10 +64,11 @@ The initiative is structured as a multi-phase effort. **Phase 1 (year 1)** deliv
 ### 3.2 Phase 1 — In scope (year 1)
 
 - Definition and stewardship of an **Enterprise Capability Profile** (EC Profile) of Gemara's stable `#Capability` — capability **identity** = **`action` + `resource`** only (see design document); first as a convention-only profile against today's schema, then (subject to Gemara TI agreement) upstreamed as `#EnterpriseCapability`.
-- Reference content: a **TIGER pillar template pack** (five `#ControlCatalog` files) and at least one **OSS-project-sized template** suitable for the typical maintainer.
-- Reference mapping documents to OSPS Baseline, NIST 800-53, ISO 27001, SOC 2.
-- Validation tooling: `govops lint`, `govops coverage`, `govops drift`. These are thin wrappers over Gemara SDK calls.
-- Conformance criteria for ACC catalogs (what makes a catalog "ACC-conformant").
+- The **GovOps repository convention** (design §5): `GovOps-AC.yaml` including standard paths for policy, proof, evidence, and mapping outputs.
+- Reference content: the **TIGER pillar template pack** (five `#ControlCatalog` files) and at least one **OSS-project-sized template** suitable for the typical maintainer.
+- Reference mapping documents to OSPS Baseline, NIST 800-53, ISO 27001, SOC 2 (including TIGER pillar controls such as `GOVOPS-ID-HUMAN`, `GOVOPS-ID-SOFTWARE`, `GOVOPS-ID-ORG`; design §11).
+- Validation tooling: `govops lint`, `govops coverage`, `govops drift` (thin wrappers over Gemara SDK calls). Use cases document expected behavior for `govops prove` and `govops tiger`; reference implementations ship in Phase 2 (§4.2).
+- Conformance criteria for ACC catalogs and GovOps repositories (what makes a catalog or repo "ACC-conformant").
 - Liaison with adjacent groups (OpenID AuthZEN for the **PARC request** shape at PDPs, Gemara for schema feedback, OSPS for project-grade templates).
 
 ### 3.3 Out of scope (every phase)
@@ -74,7 +76,7 @@ The initiative is structured as a multi-phase effort. **Phase 1 (year 1)** deliv
 - Defining a new policy language, evaluation API, or policy store specification.
 - Building production authorization engines, IGA systems, or runtime enforcement.
 - Mandating any one PDP, IAM platform, or policy language.
-- Modeling individual permission grants to specific **runtime requesters** (the PARC Principal in a given request) — those remain in IGA / IAM / runtime systems.
+- Modeling individual permission grants to specific **runtime requesters** (the PARC Principal in a given request) — those remain in IGA / IAM / runtime systems. 
 - Normative work that would duplicate or override Gemara, OSPS Baseline, or Security Insights deliverables.
 
 ### 3.4 Why this scope is non-overlapping with existing TIs
@@ -95,11 +97,11 @@ The initiative is structured as a multi-phase effort. **Phase 1 (year 1)** deliv
 | # | Deliverable | Type | Target month |
 |---|---|---|---|
 | D1 | EC Profile v0.1 (convention-only over existing `#Capability`) | Gemara YAML + spec | M3 |
-| D2 | TIGER pillar template pack v0.1 (five `#ControlCatalog` files) | Gemara YAML | M4 |
+| D2 | TIGER pillar template pack v0.1 (`GovOps-{T,I,G,E,R}.yaml` + `identity-proficiency.yaml` convention) | Gemara YAML | M4 |
 | D3 | Reference mapping: ACC ↔ OSPS Baseline | `#MappingDocument` | M5 |
 | D4 | Reference mapping: ACC ↔ NIST 800-53r5 | `#MappingDocument` | M6 |
 | D5 | OSS-project template (small, maintainer-grade) | Gemara YAML | M6 |
-| D6 | `govops lint` and `govops coverage` reference tools | Apache-2.0 code | M7 |
+| D6 | `govops lint`, `govops coverage`, and `govops drift` reference tools | Apache-2.0 code | M7 |
 | D7 | Reference mapping: ACC ↔ ISO 27001 / SOC 2 | `#MappingDocument` | M9 |
 | D8 | EC Profile v0.2 — proposal to upstream `#EnterpriseCapability` to Gemara as an ADR | ADR draft + CUE | M10 |
 | D9 | Conformance criteria document for ACC | Spec | M11 |
@@ -111,7 +113,7 @@ All Gemara artifacts are CC-BY-4.0 (per ORBIT charter §7.b.iv). All code is Apa
 
 Each future phase enters scope only by explicit TSC review per CHARTER §3.c. The list below is illustrative, not committed; it shows the trajectory the initiative anticipates so reviewers can judge fit and longevity.
 
-- **Phase 2 — Provable claims and TIGER metric formalization.** Operationalize the *provable operational claims* discipline outlined in the design document: standardize how a Gemara `#EvaluationLog` carries a `Proof` evidence type, define a per-pillar score function, and ship a reference TIGER score generator. Aligns with GovOps's "make risk measurable and comparable" objective.
+- **Phase 2 — Provable claims and TIGER metric formalization.** Operationalize the *provable operational claims* discipline outlined in the design document (§8–§9): standardize how a Gemara `#EvaluationLog` carries a `Proof` evidence type; ship reference **`govops prove`** and **`govops tiger`** implementations (per-pillar scores including Identity normalization from `identity-proficiency.yaml`, plus weighted aggregate TIGER per design §9.2); document how **`govops coverage`** requirement-satisfaction reporting complements TIGER (as illustrated in the use cases). Aligns with GovOps's "make risk measurable and comparable" objective.
 - **Phase 3 — Reference adapters for common engines.** Engine-neutral remains the rule, but practitioners need integration glue. Phase 3 ships read-only adapters that emit ACC-conformant catalogs from common PDPs (e.g. OPA, Cedar, Zanzibar-style authorization graphs). All adapters are optional and treat their input formats as opaque.
 
 The TSC may add, reorder, or drop any of these. The proposer commits only to the Phase 1 scope in §4.1.
@@ -124,7 +126,7 @@ CHARTER §3.c requires interoperability with **no less than two** other Technica
 
 ### 5.1 Gemara (Lead: Jennifer Power, Red Hat)
 
-**Form of interop:** GovOps *consumes Gemara output as core input.* Every GovOps artifact validates against existing Gemara schemas (`#CapabilityCatalog`, `#ControlCatalog`, `#MappingDocument`, `#Lexicon`, `#EvaluationLog`, `#AuditLog`). GovOps also *produces input* for Gemara: a real-world test corpus and a candidate `#EnterpriseCapability` ADR (mirroring ADR-0019's pattern).
+**Form of interop:** GovOps *consumes Gemara output as core input.* Every GovOps artifact validates against existing Gemara schemas (`#CapabilityCatalog`, `#ControlCatalog`, `#MappingDocument`, `#Lexicon`, `#EvaluationLog`, `#AuditLog`). GovOps also *produces input* for Gemara: a real-world test corpus (the Acme Bank scenario in the design §10 and the nine use cases), and a candidate `#EnterpriseCapability` ADR (mirroring ADR-0019's pattern).
 
 **What Gemara gains:**
 
@@ -185,7 +187,7 @@ A separate proposal exists to form a top-level **OpenSSF GovOps Working Group** 
 
 The two efforts share a name and a mission, with a clear separation of concerns:
 
-- **GovOps Initiative (this proposal — ORBIT Technical Initiative):** produces the *artifacts, schema profiles, templates, and tooling* — capability catalogs, TIGER pillar control catalog templates, mapping documents, conformance criteria. Outputs are Gemara YAML and Apache-2.0 code.
+- **GovOps Initiative (this proposal — ORBIT Technical Initiative):** produces the *artifacts, schema profiles, templates, and tooling* — GovOps repositories (`GovOps-AC`, five TIGER pillar catalogs including **Identity** proficiency scoring, `identity-proficiency.yaml`), mapping documents, conformance criteria, and reference CLI tools. Outputs are Gemara YAML and Apache-2.0 code.
 - **GovOps WG (separately proposed):** produces *framework, metrics model, and operating-model documents* that reference the GovOps Initiative's artifacts. Outputs are predominantly informative documents.
 
 If the GovOps WG proposal is approved, the GovOps Initiative serves as its artifact-producing partner under ORBIT — exactly the pattern OpenSSF already uses for OSPS Baseline (artifacts under ORBIT) alongside the Best Practices WG (framework). If the WG proposal is paused, deferred, or absorbed, the GovOps Initiative continues independently under ORBIT and can be consumed directly by other governance bodies (CNCF GRC, TAG-Security, IGA platforms, GRC vendors).
@@ -198,7 +200,7 @@ The proposer's intent is that this ORBIT initiative is the *primary, durable hom
 
 ### 8.1 Proposed leads
 
-- **Michael Schwartz** (Gluu) and **Rohit Khare** (Independent) — proposers, co-author of the design document, co-proponent of the GovOps WG. Per CHARTER §3.b, the lead is not a lead on any other ORBIT TI.
+- **Michael Schwartz** (Gluu) and **Rohit Khare** (Independent) — proposers, co-authors of the design and use-case documents, co-proponents of the GovOps WG. Per CHARTER §3.b, the lead is not a lead on any other ORBIT TI.
 
 ### 8.2 Anticipated contributors
 
@@ -262,7 +264,8 @@ Per CHARTER §3.c, future-phase additions (§4.2) that materially expand initiat
 | Perceived overlap with OSPS Baseline | The initiative's control domain (authorization-surface governance) is distinct from OSPS Baseline's project-security-baseline domain. The §5.2 interop is bilateral mapping, not redefinition. |
 | Naming overlap with the proposed GovOps WG | §7 sets a clear scope split (artifacts vs. framework) that mirrors OSPS Baseline / Best Practices WG. The two are explicitly designed to compose; neither blocks the other. |
 | Maintainer burden on small OSS projects | D5 (OSS-project template) is sized for solo maintainers and explicitly minimizes added conformance burden, in alignment with ORBIT Launchpad goals. |
-| TIGER acronym ambiguity | The five-letter TIGER expansion (Transparency, **Identity**, Governance, Events, Resilience) is used in this proposal. **Identity** is distinct from the **(action, resource)** capability catalog: it scores **1–5 proficiency** for managing human, software, and organizational principals that supply **PARC** Principals and **Context** (including JWT evidence). Request-context and policy proofs remain in other pillars (e.g., Transparency). Final naming can be re-decided at kickoff. |
+| TIGER acronym ambiguity | The five-letter TIGER expansion (Transparency, **Identity**, Governance, Events, Resilience) is used in this proposal and the design document. **Identity** is distinct from the **(action, resource)** capability catalog: it scores **1–5 proficiency** for managing human, software, and organizational principals that supply **PARC** Principals and **Context** (including JWT evidence). MFA and request-context enforcement for specific capabilities are governed by other pillars (e.g., Transparency) and provable claims (design §8), not by substituting Identity for capability-level controls. The companion use cases document illustrates workflows with some pillar examples still labeled Integrity; those scenarios align with Transparency / provable-claim controls in the current design. Final naming can be re-decided at kickoff. |
+| Use-case vs. design scoring model | The use cases describe five ordinal **1–5** pillar scores with no aggregate; the design document uses **0–1** per-pillar satisfaction (Identity from normalized proficiency) plus a weighted **aggregate** TIGER (design §9). Phase 2 formalizes the design model; use-case narratives will be updated to match. |
 
 ---
 
@@ -275,6 +278,7 @@ Per CHARTER §3.c, future-phase additions (§4.2) that materially expand initiat
 - Gemara ADR-0019 *Promote Capabilities to a First-class Catalog* — https://gemara.openssf.org/adrs/0019-promote-capabilities
 - Security Insights — http://security-insights.openssf.org/
 - GovOps Phase 1 (ACC) technical design — [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md) (this repository)
+- GovOps use cases — [`enterprise-capability-catalog-use-cases.md`](./enterprise-capability-catalog-use-cases.md) (this repository)
 - GovOps WG proposal (separate, top-level WG) — [`openssf-wg-proposal.md`](./openssf-wg-proposal.md) (this repository)
 - ORBIT Launchpad SIG — [`orbit-wg-launchpad.md`](./orbit-wg-launchpad.md) (this repository)
 - OpenID AuthZEN — PARC **authorization request** shape (distinct from **(action, resource)** capability identity in the catalog; see design document).

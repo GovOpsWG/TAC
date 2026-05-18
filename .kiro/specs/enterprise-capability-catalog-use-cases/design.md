@@ -7,14 +7,6 @@
 
 ---
 
-## Overview
-
-This design specifies the structure, content, and internal-consistency requirements for
-`orbit/enterprise-capability-catalog-use-cases.md` — a companion document to the
-enterprise capability catalog design that illustrates how different enterprise personas
-interact with the GovOps repository, TIGER pillar controls, and associated toolchain
-in real-world authorization governance workflows.
-
 ### Purpose of the use-cases document
 
 The design document answers *what* the system is. The use-cases document answers *how*
@@ -47,7 +39,7 @@ and cross-references are internally consistent across use cases.
 | Control id | Pillar | Sub-requirements |
 |---|---|---|
 | `GOVOPS-TR-01` | Transparency | `GOVOPS-TR-01.01`, `GOVOPS-TR-01.02` |
-| `GOVOPS-INT-01` | Integrity | `GOVOPS-INT-01.01`, `GOVOPS-INT-01.02` |
+| `GOVOPS-ID-01` | Identity | `GOVOPS-ID-01.01`, `GOVOPS-ID-01.02` |
 | `GOVOPS-GV-01` | Governance | `GOVOPS-GV-01.01`, `GOVOPS-GV-01.02`, `GOVOPS-GV-01.03` |
 | `GOVOPS-EV-01` | Events | `GOVOPS-EV-01.01`, `GOVOPS-EV-01.02`, `GOVOPS-EV-01.03` |
 | `GOVOPS-RS-01` | Resilience | `GOVOPS-RS-01.01`, `GOVOPS-RS-01.02`, `GOVOPS-RS-01.03` |
@@ -156,7 +148,7 @@ Regex: `^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$`
 GOVOPS-<PILLAR>-<NN>.<NN>
 ```
 
-- `PILLAR`: uppercase abbreviation — `TR` (Transparency), `INT` (Integrity), `GV` (Governance), `EV` (Events), `RS` (Resilience), `ID` (Identity — contents defined by GovOps Initiative Orbit WG)
+- `PILLAR`: uppercase abbreviation — `TR` (Transparency), `ID` (Identity), `GV` (Governance), `EV` (Events), `RS` (Resilience), `ID` (Identity — contents defined by GovOps Initiative Orbit WG)
 - `NN`: two-digit zero-padded integer
 
 Regex: `^GOVOPS-[A-Z]+-[0-9]+\.[0-9]+$`
@@ -178,7 +170,7 @@ metadata:
   catalog-version: "<catalog-version>"
 score:
   transparency: <integer 1–5>
-  integrity: <integer 1–5>
+  identity: <integer 1–5>
   governance: <integer 1–5>
   events: <integer 1–5>
   resilience: <integer 1–5>
@@ -292,7 +284,7 @@ dot, and a numeric minor segment.
 *For any* TIGER score example appearing in the use-cases document:
 
 1. The score object MUST contain exactly five per-pillar score fields: `transparency`,
-   `integrity`, `governance`, `events`, `resilience`.
+   `identity`, `governance`, `events`, `resilience`.
 2. Each per-pillar score MUST be an integer in {1, 2, 3, 4, 5}.
 3. The score object MUST NOT contain an `aggregate` field or any single combined
    TIGER number.
