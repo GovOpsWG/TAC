@@ -18,7 +18,7 @@ In a **capability-based** model, applications and policy engines ask whether a *
 
 Three ideas combine to form the design:
 
-1. **Capabilities are action–resource pairs; PARC is the request envelope.** The catalog inventories **(action, resource)**. At evaluation time, a PDP receives a **PARC-shaped request** (PARC Principal — the requester — plus action, resource instance, and context, often carrying **signed JWT evidence** in Context for policy to consume). Engine neutrality comes from the fact that every PDP class can consume PARC-shaped requests while the catalog stays a domain-centric inventory of discrete **(action, resource)** entries — separate from person-centric **entitlement** matrices maintained in IAM or IGA systems.
+1. **Capabilities are action–resource pairs**;  At evaluation time, a PDP receives a **PARC-shaped request**. Engine neutrality comes from the fact that every PDP class can consume PARC-shaped requests while the catalog stays a domain-centric inventory of discrete **(action, resource)** entries — separate from person-centric **entitlement** matrices maintained in IAM or IGA systems.
 2. **A GovOps repository centered on `GovOps-AC`.** A single `#CapabilityCatalog` inventories the enterprise's authorization surface; a `#Lexicon` defines canonical terms; `#MappingDocument` files link capabilities to compliance frameworks; and `policies/` holds deployed policy artifacts for drift checks. Governance metadata (risk-tier, sensitivity, documented context expectations) lives **on the capability entries**, not in a parallel pillar or scoring framework.
 3. **Catalog–policy alignment.** `govops lint` validates the catalog; `govops drift` compares the catalog to deployed policy so the authorization surface stays enumerable and aligned with enforcement.
 
@@ -48,9 +48,9 @@ The **GovOps WG proposal** (Objective #2, *"Govern Capabilities, Not Just Identi
 
 ### 2.2 Capabilities are (action, resource); PARC is how PDPs evaluate requests
 
-**Capability (this document).** A **capability** is an **(action, resource)** pair: a discrete, nameable operation on a resource type in a domain. It is **not** a principal, not a role, and not a context tuple. Risk and governance attach to the pair itself; **Context** (including JWT-derived claims) supplies evidence at evaluation time, not the capability's identity.
+A **capability** is an **(action, resource)** pair: a discrete, nameable operation on a resource type in a domain. It is **not** a principal, not a role, and not a context tuple. Risk and governance attach to the pair itself; **Context** (including JWT-derived claims) supplies evidence at evaluation time, not the capability's identity.
 
-**PARC (AuthZEN).** The OpenID AuthZEN working group standardizes **PARC** — Principal, Action, Resource, Context — as the **payload of an authorization request** to a PDP. A conforming PDP accepts a PARC-shaped request and returns Permit / Deny plus optional obligations and reasons. PARC is intentionally orthogonal to the policy store strategy:
+The OpenID AuthZEN working group standardizes **PARC** — Principal|Subject, Action, Resource, Context — as the **payload of an authorization request** to a PDP. A conforming PDP accepts a PARC-shaped request and returns Permit / Deny plus optional obligations and reasons. PARC is intentionally orthogonal to the policy store strategy:
 
 - A **policy-language PDP** (Cedar, Rego) evaluates rules over PARC-shaped requests.
 - A **relationship/graph PDP** (OpenFGA, Zanzibar) checks reachability given PARC-shaped inputs.
@@ -71,7 +71,7 @@ Gemara already supplies:
 
 In short, Gemara already has the right *shape*; what is missing is a profile that constrains `#Capability` to carry a well-typed **(action, resource)** capability identity, plus conventions for organizing controls and evidence around that inventory — without conflating the catalog with the PARC request envelope.
 
-### 2.4 The conceptual leap: from policy assertions to provable claims
+### 2.4 Automated policy conformance
 
 GRC frameworks today express requirements as **assertions about configuration**:
 
@@ -83,11 +83,9 @@ GovOps + Gemara can elevate the standard. With a **(action, resource)** capabili
 
 > "There exists no satisfiable authorization state in which capability `payments:transfer:bank-account` (the pair **transfer** on **BankAccount**) may be permitted and `context.acr` is not `urn:mfa`."
 
-That claim is stated over **requests** (PARC-shaped evaluations for that action and resource); the **capability** in the catalog remains only **transfer / BankAccount**.
+That claim is stated over **requests** (PARC-shaped evaluations for that action and resource); the **capability** in the catalog remains only **transfer / BankAccount**. 
 
-That claim is checkable. Modern policy decision points expose symbolic analyzers (SAT/SMT-based) that can produce a decision proof: either an UNSAT certificate (the requirement holds for every reachable state) or a satisfying assignment (a counterexample showing how the requirement could be violated). The same proof shape works whether the engine is Cedar, Rego (with an SMT backend), or a graph engine reduced to a constraint problem.
-
-A future phase MAY add symbolic proofs over `documented-context-expectations` (§7.2); Phase 1 focuses on cataloging and drift detection.
+PDP implementations can provide different solutions to provide automation of conformance checks, with the goal of reducing manual auditor reviews. 
 
 ---
 

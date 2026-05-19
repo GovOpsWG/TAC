@@ -1,7 +1,9 @@
 # Enterprise Capability Catalog: Use Cases
 
 **Status:** Draft for discussion
-**Audience:** Lending Officers, Platform Security Engineers, IGA Teams, Compliance Auditors, Policy Engine Operators, Fraud System operators
+
+**Audience:** Platform Security Engineers, IGA Teams, Compliance Auditors, Policy Engine Operators
+
 **Companion design:** [Cataloging Enterprise Capabilities with Gemara](./enterprise-capability-catalog-design.md)
 
 ---
