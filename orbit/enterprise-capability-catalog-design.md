@@ -85,7 +85,7 @@ GovOps + Gemara can elevate the standard. With a **(action, resource)** capabili
 
 That claim is stated over **requests** (PARC-shaped evaluations for that action and resource); the **capability** in the catalog remains only **transfer / BankAccount**. 
 
-PDP implementations can provide different solutions to provide automation of conformance checks, with the goal of reducing manual auditor reviews. 
+PDP implementations should provide different solutions to automate conformance checks, with the goal of reducing manual reviews by human auditors. 
 
 ---
 
@@ -117,6 +117,7 @@ PDP implementations can provide different solutions to provide automation of con
 ### Non-goals
 
 - Defining a new policy language, evaluation API, or policy store specification.
+- Publshing policy artifacts 
 - Modeling individual permission grants to specific principals (that is a runtime decision/enforcement concern — Gemara Layers 5–7).
 - Capturing resource instance hierarchies or organizational topology.
 - Replacing IGA entitlement catalogs. The two can coexist; the enterprise capability catalog can feed an IGA catalog or be derived from one.
@@ -149,7 +150,7 @@ Mapping each top-level item to a Gemara artifact type:
 Notes:
 
 - Nothing in the layout is normative. Organizations MAY add other Gemara catalogs (`#ControlCatalog`, `#ThreatCatalog`, `#EvaluationLog`) using the standard Gemara model; those are **not** part of the ACC core layout.
-- **Policy artifacts are out of scope for the repository layout.** Authorization policy is authored in engine-specific tooling, **published as versioned binaries**, and distributed like other software (signed releases, OCI or artifact registries, internal package feeds). `govops drift` accepts policy inputs at **invocation time** (file path, release URI, content digest); it does not require policy bytes to live beside the catalog. Drift plug-ins treat each engine's format as opaque and extract **(action, resource)** tuples for comparison. Capability `engine-bindings` MAY record a **policy-release** reference (URI, version, digest) for correlation without embedding policy source in the GovOps repo.
+
 
 ---
 
