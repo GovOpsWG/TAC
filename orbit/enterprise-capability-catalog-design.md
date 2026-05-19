@@ -19,8 +19,8 @@ In a **capability-based** model, applications and policy engines ask whether a *
 Three ideas combine to form the design:
 
 1. **Capabilities are action–resource pairs**;  At evaluation time, a PDP receives a **PARC-shaped request**. Engine neutrality comes from the fact that every PDP class can consume PARC-shaped requests while the catalog stays a domain-centric inventory of discrete **(action, resource)** entries — separate from person-centric **entitlement** matrices maintained in IAM or IGA systems.
-2. **A GovOps repository centered on `GovOps-AC`.** A single `#CapabilityCatalog` inventories the enterprise's authorization surface; a `#Lexicon` defines canonical terms; `#MappingDocument` files link capabilities to compliance frameworks; and `policies/` holds deployed policy artifacts for drift checks. Governance metadata (risk-tier, sensitivity, documented context expectations) lives **on the capability entries**, not in a parallel pillar or scoring framework.
-3. **Catalog–policy alignment.** `govops lint` validates the catalog; `govops drift` compares the catalog to deployed policy so the authorization surface stays enumerable and aligned with enforcement.
+2. **A GovOps repository centered on `GovOps-AC`.** A single `#CapabilityCatalog` inventories the enterprise's authorization surface; a `#Lexicon` defines canonical terms; and `#MappingDocument` files link capabilities to compliance frameworks. Governance metadata (risk-tier, sensitivity, documented context expectations) lives **on the capability entries**, not in a parallel pillar or scoring framework. **Policy binaries are not stored in this repository** — they are authored and published separately as versioned artifacts and distributed using software supply-chain trust models (signing, provenance, registries).
+3. **Catalog–policy alignment.** `govops lint` validates the catalog; `govops drift` compares the catalog to **published policy releases** (supplied at run time by URI, digest, or local path) so the authorization surface stays enumerable and aligned with enforcement.
 
 Gemara already provides 90% of the substrate: a stable `#CapabilityCatalog` (ADR-0019), `#ControlCatalog` and `#AssessmentRequirement`, mapping primitives that include `Capability` as an `EntryType`, `#Lexicon`, `#EvaluationLog`, `#EnforcementLog`, and `#AuditLog`. The remaining 10% is a small, additive **Enterprise Capability Profile** of `#Capability` and a set of conventions for arranging the artifacts.
 
@@ -79,7 +79,7 @@ GRC frameworks today express requirements as **assertions about configuration**:
 
 Compliance is then attested by an auditor checking that an MFA toggle is on. That tells us the *control is present*; it does not tell us the *control is sufficient*.
 
-GovOps + Gemara can elevate the standard. With a **(action, resource)** capability catalog and a deployed policy artifact, the same requirement can be expressed as a **claim about the deployed authorization surface**:
+GovOps + Gemara can elevate the standard. With a **(action, resource)** capability catalog and a **published policy release** (versioned binary evaluated out-of-band from the GovOps repo), the same requirement can be expressed as a **claim about the enforced authorization surface**:
 
 > "There exists no satisfiable authorization state in which capability `payments:transfer:bank-account` (the pair **transfer** on **BankAccount**) may be permitted and `context.acr` is not `urn:mfa`."
 
@@ -98,7 +98,7 @@ PDP implementations can provide different solutions to provide automation of con
 | **Action** | The verb half of a capability (e.g., `read`, `create`, `delete`, `transfer`, `assume`). |
 | **Resource** | The noun half of a capability: the resource **type** the action applies to (e.g., `Invoice`, `BankAccount`, `Repository`, `PolicyDocument`). The catalog records the *type*; runtime requests identify specific instances. |
 | **Context** | Attributes bundled with a **PARC request** (time, IP, approval counts, device posture, etc.), commonly including **signed JWTs** ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)) or similar tokens whose claims the PDP treats as **evidence**. Context answers *whether* a capability may be exercised in this invocation; it is not part of the capability identity. |
-| **PARC** | Principal, Action, Resource, Context — the OpenID AuthZEN **authorization request** shape. Used at the PDP boundary; **not** synonymous with "capability." |
+| **PARC** | Principal, Action, Resource, Context — the  **authorization request** shape. Used at the PDP boundary; **not** synonymous with "capability." |
 | **Enterprise capability** | A Gemara catalog entry whose **identity** is an **(action, resource)** pair (plus `id`, `title`, `description`, `group` per `#Capability`). Optional fields may document risk, sensitivity, or **expected** policy preconditions; those extensions do not redefine the capability. |
 | **Documented context expectation** | Optional metadata on a capability describing **PARC Context** the organization expects policy to enforce (e.g., MFA, approval counts). Used by `govops drift` and compliance mapping; not part of capability identity. |
 
@@ -125,7 +125,7 @@ PDP implementations can provide different solutions to provide automation of con
 
 ## 5. Repository layout
 
-A GovOps repository is a directory of Gemara artifacts plus the deployed policy material and runtime evidence that supports it. A representative tree:
+A GovOps repository is a directory of **Gemara artifacts** that describe the enterprise authorization surface and its compliance mappings. Policy enforcement rules live **outside** this tree as versioned binaries (see below). A representative tree:
 
 ```text
 govops/
@@ -133,7 +133,6 @@ govops/
   metadata.yaml                      # shared metadata fragments (optional)
   GovOps-AC.yaml                     # #CapabilityCatalog (Enterprise Capability Profile)
   mappings/                          # #MappingDocument files (NIST, ISO, SOC 2, OSPS, ...)
-  policies/                          # deployed policy artifacts (engine-specific)
   exports/                           # IGA exporter output (CSV, etc.; optional)
 ```
 
@@ -145,13 +144,12 @@ Mapping each top-level item to a Gemara artifact type:
 | `metadata.yaml` | shared `#Metadata` includes | Author, version, lexicon reference, applicability groups. |
 | `GovOps-AC.yaml` | `#CapabilityCatalog` of `#EnterpriseCapability` | Enterprise authorization surface. |
 | `mappings/` | `#MappingDocument` | Capability-to-framework mappings. |
-| `policies/` | engine-specific files | Deployed policy compared by `govops drift`. |
 | `exports/` | convention | IGA-ingestible views of the catalog (optional). |
 
 Notes:
 
 - Nothing in the layout is normative. Organizations MAY add other Gemara catalogs (`#ControlCatalog`, `#ThreatCatalog`, `#EvaluationLog`) using the standard Gemara model; those are **not** part of the ACC core layout.
-- The `policies/` directory deliberately does not impose a vendor format. Drift tooling treats each engine's format as opaque and extracts **(action, resource)** tuples for comparison.
+- **Policy artifacts are out of scope for the repository layout.** Authorization policy is authored in engine-specific tooling, **published as versioned binaries**, and distributed like other software (signed releases, OCI or artifact registries, internal package feeds). `govops drift` accepts policy inputs at **invocation time** (file path, release URI, content digest); it does not require policy bytes to live beside the catalog. Drift plug-ins treat each engine's format as opaque and extract **(action, resource)** tuples for comparison. Capability `engine-bindings` MAY record a **policy-release** reference (URI, version, digest) for correlation without embedding policy source in the GovOps repo.
 
 ---
 
@@ -237,7 +235,7 @@ package gemara
     "documented-requester-classes"?: [string, ...string] @go(DocumentedRequesterClasses)
 
     // Optional: documented expectations on PARC Context for policy reviewers.
-    // Does NOT define the capability; actual enforcement is in deployed policy.
+    // Does NOT define the capability; actual enforcement is in published policy releases.
     "documented-context-expectations"?: [#ContextPredicate, ...#ContextPredicate] @go(DocumentedContextExpectations)
 
     // data-sensitivity classifies the data exposed by the action.
@@ -264,8 +262,9 @@ package gemara
     "expression-language"?: string
 }
 
-// EngineBinding correlates this capability with engine-specific symbols.
-// Listed engines are illustrative; the field is open to any string.
+// EngineBinding correlates this capability with engine-specific symbols and,
+// optionally, a published policy release. Policy bytes are NOT stored in the
+// GovOps repository; policy-release identifies a versioned binary elsewhere.
 #EngineBinding: {
     engine: string
 
@@ -274,6 +273,14 @@ package gemara
 
     // resource-type is the engine-specific identifier for the resource type.
     "resource-type"?: string
+
+    // policy-release points at a published policy binary (registry URI, semver,
+    // content digest). Used for drift correlation and audit traceability.
+    "policy-release"?: {
+        uri?:     string
+        version?: string
+        digest?:  string
+    }
 
     notes?: string
 }
@@ -358,17 +365,17 @@ The **Authorization Capability Catalog** (`GovOps-AC`) is the Phase 1 core. Orga
 
 ### 7.1 Documented context expectations
 
-High-risk capabilities SHOULD record **documented-context-expectations** on the catalog entry — human-readable (and optionally machine-readable) statements about **PARC Context** the organization expects deployed policy to enforce (e.g., `context.acr == 'urn:mfa'`, minimum approver count). These expectations are **not** part of capability identity; they document governance intent and feed **`govops drift`** Type-C checks (catalog expectation vs. deployed policy).
+High-risk capabilities SHOULD record **documented-context-expectations** on the catalog entry — human-readable (and optionally machine-readable) statements about **PARC Context** the organization expects published policy to enforce (e.g., `context.acr == 'urn:mfa'`, minimum approver count). These expectations are **not** part of capability identity; they document governance intent and feed **`govops drift`** Type-C checks (catalog expectation vs. a supplied policy release).
 
 ### 7.2 Optional: provable claims (future phase)
 
-Where an organization wants stronger assurance than drift alone, a future GovOps phase MAY attach symbolic proofs to context expectations (UNSAT over deployed policy). That work reuses Gemara `#EvaluationLog` and optional `proofs/` artifacts; it is out of scope for the minimal ACC repository layout in §5.
+Where an organization wants stronger assurance than drift alone, a future GovOps phase MAY attach symbolic proofs to context expectations (UNSAT over a published policy release). That work reuses Gemara `#EvaluationLog` and optional `proofs/` artifacts; it is out of scope for the minimal ACC repository layout in §5.
 
 ---
 
 ## 8. Worked example
 
-A minimal **Acme Bank** payments scenario: catalog authoring, compliance mapping, and drift against deployed Cedar policy.
+A minimal **Acme Bank** payments scenario: catalog authoring, compliance mapping, and drift against a published Cedar policy release.
 
 ### 8.1 `GovOps-AC.yaml` (excerpt)
 
@@ -494,7 +501,17 @@ A compliance query becomes: *"Which capabilities at `risk-tier >= high` lack a m
 
 ### 8.3 Drift check (illustrative)
 
-`govops drift` compares `GovOps-AC` to `policies/payments-cedar.cedar`. A Type-C finding on `payments:transfer:bank-account` means deployed policy does not match the catalog's `context.acr == 'urn:mfa'` expectation — the gap is expressed in **capability id** terms, not a separate metrics framework.
+Policy for the payments service is published separately (e.g., `oci://registry.acme.example/authz/payments-policy:2026.1.4` with digest `sha256:…`). Drift is run against that release, not against files in the GovOps tree:
+
+```bash
+govops drift \
+  --catalog govops/GovOps-AC.yaml \
+  --policy oci://registry.acme.example/authz/payments-policy:2026.1.4 \
+  --digest sha256:abc123… \
+  --engine cedar
+```
+
+A Type-C finding on `payments:transfer:bank-account` means the supplied policy release does not match the catalog's `context.acr == 'urn:mfa'` expectation — the gap is expressed in **capability id** terms, not a separate metrics framework.
 
 ---
 
@@ -509,7 +526,7 @@ Use Gemara's `#MappingDocument` with `source-reference` pointing at the **`#Capa
 Phase 1 reference tooling (no Gemara schema changes beyond the optional EC profile):
 
 1. **`govops lint`** — Lexicon resolution, group membership, applicability-group value checks, engine-binding well-formedness.
-2. **`govops drift`** — Compare catalog **(action, resource)** entries to deployed policy per engine; report Type A (catalog without policy), Type B (policy without catalog), Type C (context-expectation mismatch).
+2. **`govops drift`** — Compare catalog **(action, resource)** entries to **published policy releases** per engine (artifacts passed in at run time by path, URI, or digest); report Type A (catalog without policy), Type B (policy without catalog), Type C (context-expectation mismatch).
 3. **IGA exporter** — Emit CSV / SCIM / OSCAL from `GovOps-AC` for entitlement catalogs and access reviews.
 
 Engine-specific drift plug-ins treat policy formats as opaque. A future phase MAY add `govops prove` for symbolic analysis of context expectations (§7.2).
@@ -546,7 +563,7 @@ Engine-specific drift plug-ins treat policy formats as opaque. A future phase MA
 Gemara already provides `#CapabilityCatalog`, `#MappingDocument`, `#Lexicon`, and optional layered controls. GovOps adds:
 
 - **Enterprise Capability Profile** — capability identity = **(action, resource)**; **PARC** for authorization **requests** only ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519) JWTs in **Context** as typical evidence).
-- **Minimal GovOps repository** — `GovOps-AC`, lexicon, mappings, policies; governance metadata on capabilities.
+- **Minimal GovOps repository** — `GovOps-AC`, lexicon, mappings; governance metadata on capabilities; policy as external versioned binaries.
 - **Tooling** — `govops lint`, `govops drift`, IGA export; CI/CD alignment without a parallel scoring silo.
 
 The *thing governed* is the finite inventory of **(action, resource)** capabilities; *assurance* starts with catalog–policy alignment and framework mappings, with stronger proofs optional later.
