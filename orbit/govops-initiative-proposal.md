@@ -20,19 +20,20 @@
 
 ## 1. One-page summary
 
-The **GovOps Initiative** develops interoperable, vendor-neutral Gemara artifacts and tooling for the **continuous, measurable governance of software authorization**. GovOps takes a **capability-based** approach: the **unit of governance in the catalog** is the **(action, resource)** pair — the capability — not the identity of the requester. In one sentence: GovOps is to **authorization governance** what OSPS Baseline is to **project security baselines** — a maintainer-friendly catalog plus an enterprise-grade overlay, both expressed as Gemara schema, both consumable by ORBIT tooling.
+The **GovOps Initiative** develops interoperable, vendor-neutral Gemara artifacts and tooling for **governance of the software authorization surface**. GovOps takes a **capability-based** approach: the **unit of governance in the catalog** is the **(action, resource)** pair — the capability — not the identity of the requester. In one sentence: GovOps is to **authorization governance** what OSPS Baseline is to **project security baselines** — a maintainer-friendly catalog plus an enterprise-grade overlay, both expressed as Gemara schema, both consumable by ORBIT tooling.
 
-GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization Capability Catalog (ACC)** — a Gemara-based way to inventory the authorization surface as a finite set of **(action, resource)** capabilities. 
+GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization Capability Catalog (ACC)** — a Gemara-based inventory of **(action, resource)** capabilities plus tooling to keep the catalog valid and aligned with deployed policy.
 
-The Phase 1 (ACC) deliverables are all expressed as existing Gemara artifact types so they require no Gemara schema changes to begin:
+Phase 1 deliverables use existing Gemara artifact types (no schema changes required to begin):
 
-1. An **Enterprise Capability Profile** of `#Capability` — a Gemara `#CapabilityCatalog` (`GovOps-AC.yaml`) whose entries identify capabilities by **`action` and `resource` only** (plus Gemara `#Capability` metadata such as `id`, `title`, `description`, `group`). Optional fields document risk, sensitivity, or expected request context for tooling; see the design document.
-2. A **GovOps repository convention** — a `govops/` layout pairing `GovOps-AC.yaml` with five TIGER pillar `#ControlCatalog` files (`GovOps-{Transparency,Identity,Governance,Events,Resilience}.yaml`), plus `policies/`, `proofs/`, `evidence/`, `mappings/`, and `tiger/` (design §5).
-3. A **TIGER pillar template pack** — five `#ControlCatalog` templates and scoring a domain's authorization proficiency by scoring the maturity of it's operations in the areas of **Transparency, Identity, Governance, Events, and Resilience**.
-4. **`#MappingDocument` artifacts** linking ACC and TIGER content to OSPS Baseline, NIST 800-53, ISO 27001, and SOC 2.
-5. **Reference tooling** — `govops lint`, `govops coverage`, and `govops drift` (design §12); companion use cases illustrate `govops prove`, `govops tiger`, and CI/CD gates (formal reference implementations targeted in Phase 2).
+1. An **Enterprise Capability Profile** of `#Capability` — `GovOps-AC.yaml` whose entries identify capabilities by **`action` and `resource` only**, with optional risk-tier, sensitivity, and documented context expectations (see design document).
+2. A **GovOps repository convention** — `govops/` with `GovOps-AC.yaml`, `#Lexicon`, `mappings/`, and `policies/` (design §5).
+3. **`#MappingDocument` artifacts** linking capability ids to OSPS Baseline, NIST 800-53, ISO 27001, and SOC 2.
+4. **Reference tooling** — `govops lint`, `govops drift`, and the **IGA exporter** (design §10).
 
-GovOps Phase 1 is authorization engine-neutral by construction. The catalog itself is organized around the **(action, resource) capability** — that is the unit governance acts on. At runtime, decisions over the catalog are *requested* in the **PARC** (Principal, Action, Resource, Context) envelope standardized by OpenID AuthZEN, which many PDPs — policy-language, graph, ABAC, hybrid — already speak. The catalog describes what is *governed*, and must work across implementations without privileging any one vendor.
+A technical design and five persona-driven use cases exist in this repository: [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md) and [`enterprise-capability-catalog-use-cases.md`](./enterprise-capability-catalog-use-cases.md).
+
+GovOps Phase 1 is authorization engine-neutral. The catalog describes what is *governed*; at runtime, PDPs evaluate **PARC-shaped requests** (OpenID AuthZEN). **Context** commonly carries signed JWT evidence ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)).
 
 ---
 
@@ -40,16 +41,15 @@ GovOps Phase 1 is authorization engine-neutral by construction. The catalog itse
 
 ORBIT's mission per CHARTER.md §1.a is *"to develop and maintain interoperable resources related to the identification and presentation of security-relevant data."* Authorization decisions are among the most security-relevant data an enterprise or open-source project produces.
 
-Today the authorization surface is most often catalogued indirectly — through entitlement rows, role assignments, group memberships, or hard-coded engine-specific policy strings — with no standard structure for *identifying* the surface itself (what actions on what resources can be requested) or *presenting* the conditions under which those actions are allowed. The result is that governance asks the wrong question first ("who can do what?") and only later struggles back to the question that actually scales ("is this action on this resource allowed under this context and evidence?").
-
-GovOps inverts the order. It catalogues the authorization surface as **capabilities** — **(action, resource)** pairs. The Capability Catalog does not express **when** those capabilities are permitted--the policies or access control mechanisms may vary based on PDP type. The catalog is therefore independent of any particular authorization implementation. 
+Today the authorization surface is catalogued indirectly — entitlements, roles, engine-specific policy strings — with no standard way to **identify** what **(action, resource)** pairs exist or **present** how they are governed. GovOps catalogues that surface as **capabilities** and keeps it aligned with enforcement via drift detection.
 
 Specifically, GovOps:
-- Makes the authorization surface **identifiable** as a finite, addressable set of capability ids.
-- Makes it **presentable** as Gemara YAML/JSON validatable against a stable schema.
-- Makes the requirements over it **interoperable** by expressing them as Gemara `#ControlCatalog` entries.
 
-The work is naturally cross-cutting across the four existing TIs (see §5 below), satisfies CHARTER §3.c.i interoperability, and produces durable artifacts in the same style as OSPS Baseline and Security Insights.
+- Makes the authorization surface **identifiable** as a finite set of capability ids.
+- Makes it **presentable** as Gemara YAML/JSON validatable against stable schema.
+- Makes compliance and IGA workflows **interoperable** via `#MappingDocument` links to common frameworks.
+
+The work is cross-cutting across the four existing TIs (§5), satisfies CHARTER §3.c.i interoperability, and follows the OSPS Baseline / Security Insights artifact style.
 
 ---
 
@@ -57,36 +57,36 @@ The work is naturally cross-cutting across the four existing TIs (see §5 below)
 
 ### 3.1 Mission
 
-Develop and maintain interoperable, engine-neutral catalog artifacts, templates, and tooling that let an enterprise or open-source project govern its authorization surface as a first-class, machine-readable, continuously measurable domain — using existing Gemara schema and ORBIT-friendly conventions.
+Develop and maintain interoperable, engine-neutral **capability catalog** artifacts, templates, and tooling so enterprises and OSS projects can govern their authorization surface as a first-class, machine-readable domain — using existing Gemara schema.
 
-The initiative is structured as a multi-phase effort. **Phase 1 (year 1)** delivers the Authorization Capability Catalog. Subsequent phases extend the same substrate into adjacent governance concerns (see §4.2 *Future-phase candidates*); each future phase enters scope only after TSC review, so the initiative grows incrementally and never outruns demonstrated demand.
+**Phase 1 (year 1)** delivers the Authorization Capability Catalog. Later phases (§4.2) add optional proofs and engine adapters after TSC review.
 
 ### 3.2 Phase 1 — In scope (year 1)
 
-- Definition and stewardship of an **Enterprise Capability Profile** (EC Profile) of Gemara's stable `#Capability` — capability **identity** = **`action` + `resource`** only (see design document); first as a convention-only profile against today's schema, then (subject to Gemara TI agreement) upstreamed as `#EnterpriseCapability`.
-- The **GovOps repository convention** (design §5): `GovOps-AC.yaml` including standard paths for policy, proof, evidence, and mapping outputs.
-- Reference content: the **TIGER pillar template pack** (five `#ControlCatalog` files) and at least one **OSS-project-sized template** suitable for the typical maintainer.
-- Reference mapping documents to OSPS Baseline, NIST 800-53, ISO 27001, SOC 2 (including TIGER pillar controls such as `GOVOPS-ID-HUMAN`, `GOVOPS-ID-SOFTWARE`, `GOVOPS-ID-ORG`; design §11).
-- Validation tooling: `govops lint`, `govops coverage`, `govops drift` (thin wrappers over Gemara SDK calls). Use cases document expected behavior for `govops prove` and `govops tiger`; reference implementations ship in Phase 2 (§4.2).
-- Conformance criteria for ACC catalogs and GovOps repositories (what makes a catalog or repo "ACC-conformant").
-- Liaison with adjacent groups (OpenID AuthZEN for the **PARC request** shape at PDPs, Gemara for schema feedback, OSPS for project-grade templates).
+- **Enterprise Capability Profile** (EC Profile) — `action` + `resource` capability identity; convention-only first, then candidate `#EnterpriseCapability` ADR to Gemara.
+- **GovOps repository convention** — `GovOps-AC.yaml`, lexicon, mappings, policies (design §5).
+- Reference **mapping documents** to OSPS Baseline, NIST 800-53, ISO 27001, SOC 2.
+- **OSS-project-sized template** for typical maintainers.
+- **`govops lint`** and **`govops drift`** reference tools; **IGA exporter** for entitlement catalogs.
+- **Conformance criteria** for ACC catalogs and GovOps repositories.
+- Liaison with OpenID AuthZEN (PARC), Gemara (schema), OSPS (templates).
 
 ### 3.3 Out of scope (every phase)
 
-- Defining a new policy language, evaluation API, or policy store specification.
-- Building production authorization engines, IGA systems, or runtime enforcement.
-- Mandating any one PDP, IAM platform, or policy language.
-- Modeling individual permission grants to specific **runtime requesters** (the PARC Principal in a given request) — those remain in IGA / IAM / runtime systems. 
-- Normative work that would duplicate or override Gemara, OSPS Baseline, or Security Insights deliverables.
+- New policy languages, evaluation APIs, or policy store specifications.
+- Production PDPs, IGA systems, or runtime enforcement products.
+- Mandating a single PDP or policy language.
+- Modeling per-request permission grants (PARC Principals remain in IAM/IGA/runtime).
+- Duplicating Gemara, OSPS Baseline, or Security Insights normative specs.
 
 ### 3.4 Why this scope is non-overlapping with existing TIs
 
 | Existing TI | What it does | What GovOps Initiative does | Overlap |
 |---|---|---|---|
-| Gemara | Defines the schema. | Uses the schema; contributes a profile candidate back. | None — GovOps is a *consumer and contributor*, not a competitor. |
-| OSPS Baseline | Defines a baseline of project security controls. | Defines a complementary authorization surface inventory and TIGER controls; can be referenced from OSPS where relevant. | None — different control domain. |
-| Security Insights Spec | Standardizes machine-readable project security info. | Optionally references SI for project metadata; can be referenced from SI for "this project's authorization surface". | Adjacent, not overlapping. |
-| ORBIT Launchpad | Connects tooling maintainers to end users. | Becomes a Launchpad-aligned adoption vehicle for enterprise authorization tooling. | Complementary. |
+| Gemara | Defines the schema. | Consumes schema; contributes EC Profile ADR. | None — consumer/contributor. |
+| OSPS Baseline | Project security baseline controls. | Authorization-surface inventory + mappings. | None — different domain. |
+| Security Insights Spec | Machine-readable project security info. | Publishable `GovOps-AC.yaml` reference from SI. | Adjacent. |
+| ORBIT Launchpad | Tooling matchmaking. | Adoption pattern for authz tooling + catalogs. | Complementary. |
 
 ---
 
@@ -97,85 +97,66 @@ The initiative is structured as a multi-phase effort. **Phase 1 (year 1)** deliv
 | # | Deliverable | Type | Target month |
 |---|---|---|---|
 | D1 | EC Profile v0.1 (convention-only over existing `#Capability`) | Gemara YAML + spec | M3 |
-| D2 | TIGER pillar template pack v0.1 (`GovOps-{T,I,G,E,R}.yaml`) | Gemara YAML | M4 |
+| D2 | Reference `GovOps-AC` + lexicon template | Gemara YAML | M4 |
 | D3 | Reference mapping: ACC ↔ OSPS Baseline | `#MappingDocument` | M5 |
 | D4 | Reference mapping: ACC ↔ NIST 800-53r5 | `#MappingDocument` | M6 |
-| D5 | OSS-project template (small, maintainer-grade) | Gemara YAML | M6 |
-| D6 | `govops lint`, `govops coverage`, and `govops drift` reference tools | Apache-2.0 code | M7 |
+| D5 | OSS-project template (maintainer-grade) | Gemara YAML | M6 |
+| D6 | `govops lint` and `govops drift` reference tools | Apache-2.0 code | M7 |
 | D7 | Reference mapping: ACC ↔ ISO 27001 / SOC 2 | `#MappingDocument` | M9 |
-| D8 | EC Profile v0.2 — proposal to upstream `#EnterpriseCapability` to Gemara as an ADR | ADR draft + CUE | M10 |
-| D9 | Conformance criteria document for ACC | Spec | M11 |
-| D10 | Phase 1 report and Phase 2 scope proposal | Markdown | M12 |
+| D8 | IGA exporter reference implementation | Apache-2.0 code | M9 |
+| D9 | EC Profile v0.2 — `#EnterpriseCapability` ADR draft to Gemara | ADR + CUE | M10 |
+| D10 | Conformance criteria document for ACC | Spec | M11 |
+| D11 | Phase 1 report and Phase 2 scope proposal | Markdown | M12 |
 
 All Gemara artifacts are CC-BY-4.0 (per ORBIT charter §7.b.iv). All code is Apache-2.0.
 
 ### 4.2 Future-phase candidates (year 2+)
 
-Each future phase enters scope only by explicit TSC review per CHARTER §3.c. The list below is illustrative, not committed; it shows the trajectory the initiative anticipates so reviewers can judge fit and longevity.
+Each phase requires explicit TSC review per CHARTER §3.c.
 
-- **Phase 2 — Provable claims and TIGER metric formalization.** Operationalize the *provable operational claims* discipline outlined in the design document (§8–§9): standardize how a Gemara `#EvaluationLog` carries a `Proof` evidence type; ship reference **`govops prove`** and **`govops tiger`** implementations (per-pillar scores per design §9.2); document how **`govops coverage`** requirement-satisfaction reporting complements TIGER (as illustrated in the use cases). Aligns with GovOps's "make risk measurable and comparable" objective.
-- **Phase 3 — Reference adapters for common engines.** Engine-neutral remains the rule, but practitioners need integration glue. Phase 3 ships read-only adapters that emit ACC-conformant catalogs from common PDPs (e.g. OPA, Cedar, Zanzibar-style authorization graphs). All adapters are optional and treat their input formats as opaque.
+- **Phase 2 — Provable context expectations.** Optional symbolic proofs over `documented-context-expectations` using Gemara `#EvaluationLog` (design §7.2).
+- **Phase 3 — Reference adapters for common engines.** Read-only emitters of ACC-conformant catalogs from OPA, Cedar, OpenFGA, etc.
 
-The TSC may add, reorder, or drop any of these. The proposer commits only to the Phase 1 scope in §4.1.
+The proposer commits only to Phase 1 in §4.1.
 
 ---
 
 ## 5. Interoperability with existing Technical Initiatives
 
-CHARTER §3.c requires interoperability with **no less than two** other Technical Initiatives. The GovOps Initiative is interoperable with **all four**, as described below. For each, the section quotes the form of interop the charter recognizes (§3.c.i: "acceptance of outputs from one project as inputs to the core feature set of another"). Phase 1 (ACC) deliverables are the concrete artifacts that drive interop today; later phases extend the same pattern.
+CHARTER §3.c requires interoperability with **no less than two** other TIs. GovOps interoperates with **all four**.
 
 ### 5.1 Gemara (Lead: Jennifer Power, Red Hat)
 
-**Form of interop:** GovOps *consumes Gemara output as core input.* Every GovOps artifact validates against existing Gemara schemas (`#CapabilityCatalog`, `#ControlCatalog`, `#MappingDocument`, `#Lexicon`, `#EvaluationLog`, `#AuditLog`). GovOps also *produces input* for Gemara: a real-world test corpus (the Acme Bank scenario in the design §10 and the nine use cases), and a candidate `#EnterpriseCapability` ADR (mirroring ADR-0019's pattern).
+**Form of interop:** GovOps consumes `#CapabilityCatalog`, `#MappingDocument`, `#Lexicon`. Produces test corpus (Acme scenario, design §8; five use cases) and candidate `#EnterpriseCapability` ADR.
 
-**What Gemara gains:**
-
-- The first major *external* adopter of `#CapabilityCatalog` (ADR-0019) beyond the existing system-capability use, validating the design under a more granular workload.
-- Concrete test data exercising `#MultiEntryMapping`, `#MappingDocument` with `Capability` as an `EntryType`, `#Lexicon`, and `applicability-groups`.
-- A candidate ADR (`#EnterpriseCapability`) carrying the EC Profile upstream when ready, in the same spirit as ADR-0018 → ADR-0019.
-- A reference set of mapping documents to NIST 800-53 / ISO 27001 / SOC 2 that other Gemara users can reuse.
+**What Gemara gains:** First major external adopter of `#CapabilityCatalog` (ADR-0019) at enterprise granularity; reference mappings to NIST/ISO/SOC 2.
 
 ### 5.2 OSPS Baseline (Lead: Ben Cotton, Kusari)
 
-**Form of interop:** GovOps *produces a `#MappingDocument` whose source-reference is OSPS Baseline*, allowing OSPS-Baseline-conformant projects to declare authorization-surface coverage through GovOps capability ids. GovOps *also consumes* OSPS Baseline groupings to align category names where the two overlap.
+**Form of interop:** `#MappingDocument` from OSPS Baseline to GovOps capability ids; OSS template sized for maintainers.
 
-**What OSPS Baseline gains:**
-
-- A complementary authorization-specific overlay for projects whose security posture is partly defined by *what actions are allowed on what resources and under what conditions* (release minting, branch protection, dependency upgrade approvals, secret access). These are CRA-relevant concerns under-represented in today's baseline.
-- An OSS-project-sized GovOps template (D5) sized for the typical maintainer — explicitly designed not to add baseline conformance burden.
-- A path for OSPS-Baseline-conformant projects to extend their assertions into authorization without leaving the Gemara family of artifacts.
-- A reusable mapping document linking GovOps content back to OSPS Baseline controls where relevant.
+**What OSPS Baseline gains:** Authorization-surface overlay for CRA-relevant project controls without leaving Gemara artifacts.
 
 ### 5.3 Security Insights Specification (Lead: Eddie Knight, Sonatype — TSC Chair)
 
-**Form of interop:** GovOps *produces output consumable by Security Insights*: a project's published `GovOps-AC.yaml` (or equivalent capability catalog) is a structured artifact a Security Insights manifest can reference, declaring "this project's authorization surface lives at `<URL>`." GovOps *consumes* Security Insights data when available (project metadata, ownership, contact) to populate `metadata.author` and `#RACI` fields.
+**Form of interop:** Published `GovOps-AC.yaml` referenceable from Security Insights manifests.
 
-**What Security Insights gains:**
-
-- A new structured, machine-readable category of security-relevant data for SI consumers (LFX Insights, Best Practices Badge, downstream tools) to render and aggregate.
-- Continuity with the work Eddie co-authored in Gemara ADR-0019 — GovOps is the natural downstream adoption story for that ADR, broadening the value of both.
-- A second-axis lens (authorization, alongside posture) that strengthens the Security Insights value proposition without expanding its spec.
+**What Security Insights gains:** Structured authorization-surface data for SI consumers; downstream story for ADR-0019.
 
 ### 5.4 ORBIT Launchpad (Lead: Nicole Bates)
 
-**Form of interop:** GovOps *consumes Launchpad's matchmaking function*: the initiative's enterprise contributors and OSS authz tooling maintainers (PDP and engine projects) connect through Launchpad. GovOps *produces* an adoption-pattern artifact suitable for Launchpad's mutually-beneficial-alignment objective: an enterprise can publish its GovOps catalog as a reusable pattern, and OSS authz tooling can declare GovOps-compatibility.
+**Form of interop:** Enterprise catalog patterns + OSS authz tooling compatibility via Launchpad matchmaking.
 
-**What Launchpad gains:**
-
-- A concrete adoption flow that exercises Launchpad's mission: enterprise practitioners donate templates and learnings; OSS authz tooling maintainers gain a standard target their tools can plug into.
-- A success-story candidate for Launchpad to feature in 2026, aligned with the SIG's CRA-driven motivation.
-- A worked example of ORBIT outputs (Gemara schemas, OSPS Baseline, Security Insights) composing into a higher-level workflow.
+**What Launchpad gains:** Concrete 2026 adoption flow composing ORBIT artifacts.
 
 ---
 
 ## 6. Why each TSC voting member should support this
 
-A direct answer to the charter §3.c question: *why is this initiative worth a yes vote?*
-
-- **For the Gemara lead:** Vote yes if you want the schema you stewarded (especially `#CapabilityCatalog` per ADR-0019) exercised at scale by a real adopter that contributes test data, a candidate ADR, and reference mappings back to your repository.
-- **For the Security Insights lead:** Vote yes if you want the ADR-0019 work you co-authored to acquire a downstream adoption story, and a new category of structured security data for SI consumers to render.
-- **For the OSPS Baseline lead:** Vote yes if you want a maintainer-friendly authorization overlay that complements OSPS Baseline without competing with it, addresses CRA-relevant project-authorization concerns (release minting, secret access, approver SoD), and ships a Baseline ↔ ACC mapping you do not have to write.
-- **For the ORBIT Launchpad lead:** Vote yes if you want an enterprise-to-OSS adoption pattern that exercises Launchpad's matchmaking mission, gives Launchpad a 2026 success story, and demonstrates ORBIT outputs composing into a higher-level workflow.
+- **Gemara lead:** Exercises `#CapabilityCatalog` at scale; test data and ADR contribution back.
+- **Security Insights lead:** ADR-0019 adoption story; new SI data category.
+- **OSPS Baseline lead:** Complementary authorization overlay + mapping without competing with Baseline.
+- **Launchpad lead:** Enterprise-to-OSS pattern and composed ORBIT workflow.
 
 The 2/3 threshold per CHARTER §3.c is met if any three of the four leads vote yes.
 
@@ -183,16 +164,12 @@ The 2/3 threshold per CHARTER §3.c is met if any three of the four leads vote y
 
 ## 7. Relationship to the proposed GovOps WG
 
-A separate proposal exists to form a top-level **OpenSSF GovOps Working Group** (see [`openssf-wg-proposal.md`](./openssf-wg-proposal.md)) for framework-level work on authorization governance — definitions, operating model, metrics model documents, and reference architectures.
+A separate **OpenSSF GovOps Working Group** proposal ([`openssf-wg-proposal.md`](./openssf-wg-proposal.md)) may produce framework and operating-model documents.
 
-The two efforts share a name and a mission, with a clear separation of concerns:
+- **GovOps Initiative (ORBIT TI):** Gemara artifacts, EC Profile, templates, `govops lint` / `govops drift`, mappings, conformance criteria.
+- **GovOps WG (if approved):** Informative framework documents referencing those artifacts.
 
-- **GovOps Initiative (this proposal — ORBIT Technical Initiative):** produces the *artifacts, schema profiles, templates, and tooling* — GovOps repositories (`GovOps-AC`, five TIGER pillar catalogs, mapping documents, conformance criteria, and reference CLI tools. Outputs are Gemara YAML and Apache-2.0 code.
-- **GovOps WG (separately proposed):** produces *framework, metrics model, and operating-model documents* that reference the GovOps Initiative's artifacts. Outputs are predominantly informative documents.
-
-If the GovOps WG proposal is approved, the GovOps Initiative serves as its artifact-producing partner under ORBIT — exactly the pattern OpenSSF already uses for OSPS Baseline (artifacts under ORBIT) alongside the Best Practices WG (framework). If the WG proposal is paused, deferred, or absorbed, the GovOps Initiative continues independently under ORBIT and can be consumed directly by other governance bodies (CNCF GRC, TAG-Security, IGA platforms, GRC vendors).
-
-The proposer's intent is that this ORBIT initiative is the *primary, durable home* for GovOps work. The WG, if approved, complements it; either way, the artifact stream lives here.
+Same pattern as OSPS Baseline (ORBIT) + Best Practices WG.
 
 ---
 
@@ -200,33 +177,33 @@ The proposer's intent is that this ORBIT initiative is the *primary, durable hom
 
 ### 8.1 Proposed leads
 
-- **Michael Schwartz** (Gluu) and **Rohit Khare** (Independent) — proposers, co-authors of the design and use-case documents, co-proponents of the GovOps WG. Per CHARTER §3.b, the lead is not a lead on any other ORBIT TI.
+- **Michael Schwartz** (Gluu) and **Rohit Khare** (Independent) — proposers, co-authors of design and use-case documents. Per CHARTER §3.b, lead is not a lead on another ORBIT TI.
 
 ### 8.2 Anticipated contributors
 
-This proposal builds on the contributor base of the GovOps WG proposal in [`openssf-wg-proposal.md`](./openssf-wg-proposal.md), several of whom have committed to authorship under the GovOps Initiative specifically. The initial contributor list includes IGA practitioners, GRC platform engineers, authorization and identity vendors, and OSS authz tooling maintainers. The full list will be confirmed at initiative kickoff per ORBIT custom.
+IGA practitioners, GRC engineers, authorization vendors, OSS authz maintainers (see [`openssf-wg-proposal.md`](./openssf-wg-proposal.md)); list confirmed at kickoff.
 
 ### 8.3 Lead succession
 
-Per CHARTER §3.b.ii, the lead may nominate a replacement at any time. We will document a deputy within the first three months to ensure continuity.
+Deputy documented within three months per CHARTER §3.b.ii.
 
 ### 8.4 Meeting cadence
 
-- GovOps Initiative working session: bi-weekly.
-- TSC reporting: GovOps Initiative lead attends ORBIT TSC routines per CHARTER §3.b.i.
+- Bi-weekly GovOps Initiative session.
+- TSC reporting per CHARTER §3.b.i.
 
 ### 8.5 Communication channels
 
-- GitHub: a new `ossf/orbit-govops` repository (or similar) created at TSC approval.
-- Slack: existing `#wg-orbit` plus a dedicated `#orbit-govops` channel.
-- Public meeting notes and recordings.
+- GitHub: `ossf/orbit-govops` (or similar) at TSC approval.
+- Slack: `#wg-orbit`, `#orbit-govops`.
+- Public notes and recordings.
 
 ### 8.6 Licensing and IP
 
-- Documentation under CC-BY-4.0 (CHARTER §7.b.iv).
-- Code under Apache-2.0 (CHARTER §7.b.i).
-- Data under CDLA-Permissive 1.0 (CHARTER §7.b.v).
-- All inbound contributions DCO-signed (CHARTER §7.b.ii).
+- Documentation: CC-BY-4.0.
+- Code: Apache-2.0.
+- Data: CDLA-Permissive 1.0.
+- Contributions: DCO-signed.
 
 ---
 
@@ -234,23 +211,21 @@ Per CHARTER §3.b.ii, the lead may nominate a replacement at any time. We will d
 
 The proposer requests that the ORBIT TSC, by 2/3 majority per CHARTER §3.c:
 
-1. **Approve** the **GovOps Initiative** as a new Sandbox-level Technical Initiative within the ORBIT WG, with Phase 1 scope as defined in §3.2 and §4.1 (Authorization Capability Catalog).
-2. **Confirm** Michael Schwartz (Gluu) as initiative lead, per CHARTER §3.b.
-3. **Adopt** the charter amendment in §10 below, adding the GovOps Initiative to the *Active Technical Initiatives* table.
+1. **Approve** the **GovOps Initiative** as a Sandbox Technical Initiative with Phase 1 scope in §3.2 and §4.1.
+2. **Confirm** Michael Schwartz (Gluu) as initiative lead per CHARTER §3.b.
+3. **Adopt** the charter amendment in §10.
 
 ---
 
 ## 10. Proposed charter amendment
 
-Add the following row to CHARTER.md §3 *Active Technical Initiatives* table:
+Add to CHARTER.md §3 *Active Technical Initiatives*:
 
 ```markdown
 | GovOps Initiative | Michael Schwartz (@nynymike) |
 ```
 
-No other charter sections require amendment. The amendment is ratified by 2/3 TSC majority per CHARTER §3.c.
-
-Per CHARTER §3.c, future-phase additions (§4.2) that materially expand initiative scope beyond Phase 1 will be brought back to the TSC as separate update proposals; this proposal does not pre-authorize them.
+Ratified by 2/3 TSC majority. Future phases (§4.2) require separate TSC proposals.
 
 ---
 
@@ -258,45 +233,39 @@ Per CHARTER §3.c, future-phase additions (§4.2) that materially expand initiat
 
 | Risk | Mitigation |
 |---|---|
-| Scope creep — multi-phase framing invites unbounded expansion | §3.3 fixes a hard "out of scope" list that applies to *every* phase. §4.2 future phases enter scope only by explicit TSC review (§10). The proposer commits only to Phase 1 in §4.1. |
-| Scope creep into policy-engine specification | §3.3 explicitly excludes new policy languages and engines. **PARC** is the OpenID AuthZEN **authorization request** envelope at PDPs; **capability identity** in the catalog remains **(action, resource)** only — the split is specified in the design document. |
-| Perceived overlap with Gemara | The initiative is a *consumer and contributor*, not a competitor. The §5.1 interop description and the planned Gemara ADR contribution make the relationship explicit. The Gemara TI lead is a designated approver. |
-| Perceived overlap with OSPS Baseline | The initiative's control domain (authorization-surface governance) is distinct from OSPS Baseline's project-security-baseline domain. The §5.2 interop is bilateral mapping, not redefinition. |
-| Naming overlap with the proposed GovOps WG | §7 sets a clear scope split (artifacts vs. framework) that mirrors OSPS Baseline / Best Practices WG. The two are explicitly designed to compose; neither blocks the other. |
-| Maintainer burden on small OSS projects | D5 (OSS-project template) is sized for solo maintainers and explicitly minimizes added conformance burden, in alignment with ORBIT Launchpad goals. |
-| TIGER acronym ambiguity | The five-letter TIGER expansion (Transparency, **Identity**, Governance, Events, Resilience) is used in this proposal and the design document. **Identity** is distinct from the **(action, resource)** capability catalog: it scores **1–5 proficiency** for managing human, software, and organizational principals that supply **PARC** Principals and **Context** (including JWT evidence). MFA and request-context enforcement for specific capabilities are governed by other pillars (e.g., Transparency) and provable claims (design §8), not by substituting Identity for capability-level controls. The companion use cases document illustrates workflows with some pillar examples still labeled Integrity; those scenarios align with Transparency / provable-claim controls in the current design. Final naming can be re-decided at kickoff. |
-| Use-case vs. design scoring model | The use cases describe five ordinal **1–5** pillar scores with no aggregate; the design document uses **0–1** per-pillar satisfaction (Identity from normalized proficiency) plus a weighted **aggregate** TIGER (design §9). Phase 2 formalizes the design model; use-case narratives will be updated to match. |
+| Scope creep | §3.3 out-of-scope list; Phase 1 only in §4.1; later phases need TSC review. |
+| Policy-engine specification creep | §3.3 excludes new languages/APIs; PARC is request envelope only. |
+| Overlap with Gemara | Consumer/contributor; Gemara lead as approver. |
+| Overlap with OSPS Baseline | Bilateral mapping, distinct domain. |
+| Overlap with GovOps WG | §7 scope split (artifacts vs. framework). |
+| Maintainer burden | D5 OSS template minimizes conformance cost. |
 
 ---
 
 ## 12. References
 
 - ORBIT WG Charter — https://github.com/ossf/wg-orbit/blob/main/CHARTER.md
-- ORBIT WG README — https://github.com/ossf/wg-orbit
 - OSPS Baseline — https://baseline.openssf.org
 - Gemara — https://gemara.openssf.org
-- Gemara ADR-0019 *Promote Capabilities to a First-class Catalog* — https://gemara.openssf.org/adrs/0019-promote-capabilities
+- Gemara ADR-0019 — https://gemara.openssf.org/adrs/0019-promote-capabilities
 - Security Insights — http://security-insights.openssf.org/
-- GovOps Phase 1 (ACC) technical design — [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md) (this repository)
-- GovOps use cases — [`enterprise-capability-catalog-use-cases.md`](./enterprise-capability-catalog-use-cases.md) (this repository)
-- GovOps WG proposal (separate, top-level WG) — [`openssf-wg-proposal.md`](./openssf-wg-proposal.md) (this repository)
-- ORBIT Launchpad SIG — [`orbit-wg-launchpad.md`](./orbit-wg-launchpad.md) (this repository)
-- OpenID AuthZEN — PARC **authorization request** shape (distinct from **(action, resource)** capability identity in the catalog; see design document).
-- RFC 7519 — JSON Web Token (JWT), commonly used as signed evidence in **PARC Context**.
+- [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md)
+- [`enterprise-capability-catalog-use-cases.md`](./enterprise-capability-catalog-use-cases.md)
+- [`openssf-wg-proposal.md`](./openssf-wg-proposal.md)
+- OpenID AuthZEN — PARC request shape
+- RFC 7519 — JWT in PARC Context
 
 ---
 
 ## Appendix A. Charter conformance checklist
 
-Mapping this proposal to CHARTER §3.c requirements:
-
 | Charter requirement | Where addressed |
 |---|---|
-| §3.c — Topically relevant | §2 *Why this belongs in ORBIT* |
-| §3.c — Interoperable with no less than two other TIs | §5 — interop with **all four** TIs documented |
-| §3.c — Acceptance of outputs as inputs (§3.c.i) | §5.1 (Gemara), §5.3 (SI) — explicit two-way artifact flows |
-| §3.c — Provides output accepted as input (§3.c.ii) | §5.1 (test corpus, ADR), §5.2 (mapping doc), §5.3 (SI artifact) |
-| §3.c — Proposal includes charter update | §10 — amendment text provided |
-| §3.b — Identified lead, not a lead on another ORBIT TI | §8.1 — Michael Schwartz |
-| §3.c — 2/3 TSC approval required | §9 — explicit ask |
-| §7 — Licensing | §8.6 — CC-BY-4.0 / Apache-2.0 / CDLA-Permissive 1.0 / DCO |
+| §3.c — Topically relevant | §2 |
+| §3.c — Interoperable with ≥2 TIs | §5 (all four) |
+| §3.c.i — Outputs as inputs | §5.1, §5.3 |
+| §3.c.ii — Provides accepted outputs | §5.1, §5.2 |
+| Charter update | §10 |
+| §3.b — Lead identified | §8.1 |
+| §3.c — 2/3 approval | §9 |
+| §7 — Licensing | §8.6 |
