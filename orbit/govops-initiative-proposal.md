@@ -33,7 +33,7 @@ Phase 1 deliverables use existing Gemara artifact types (no schema changes requi
 
 A technical design and five persona-driven use cases exist in this repository: [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md) and [`enterprise-capability-catalog-use-cases.md`](./enterprise-capability-catalog-use-cases.md).
 
-GovOps Phase 1 is authorization engine-neutral. The catalog describes what is *governed*; at runtime, PDPs evaluate **PARC-shaped requests** (OpenID AuthZEN). **Context** commonly carries signed JWT evidence ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)).
+GovOps Phase 1 is authorization engine-neutral. The catalog describes what is *governed*; at runtime, PDPs evaluate **PARC-shaped requests** (e.g. an OpenID AuthZEN request). **Context** commonly carries facts, e.g. JWTs ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)) or facts obtained by Zanzibar-style authorization graphs. 
 
 ---
 
@@ -41,7 +41,7 @@ GovOps Phase 1 is authorization engine-neutral. The catalog describes what is *g
 
 ORBIT's mission per CHARTER.md §1.a is *"to develop and maintain interoperable resources related to the identification and presentation of security-relevant data."* Authorization decisions are among the most security-relevant data an enterprise or open-source project produces.
 
-Today the authorization surface is catalogued indirectly — entitlements, roles, engine-specific policy strings — with no standard way to **identify** what **(action, resource)** pairs exist or **present** how they are governed. GovOps catalogues that surface as **capabilities** and keeps it aligned with enforcement via drift detection.
+Today the authorization surface is catalogued indirectly — entitlements, roles, engine-specific policy strings — with no standard way to **inventory** what **(action, resource)** pairs exist or how they are governed. GovOps catalogues  surface  **capabilities** and keeps them aligned with enforcement via drift detection.
 
 Specifically, GovOps:
 
@@ -76,7 +76,7 @@ Develop and maintain interoperable, engine-neutral **capability catalog** artifa
 - New policy languages, evaluation APIs, or policy store specifications.
 - Production PDPs, IGA systems, or runtime enforcement products.
 - Mandating a single PDP or policy language.
-- Modeling per-request permission grants (PARC Principals remain in IAM/IGA/runtime).
+- Modeling per-request permission grants 
 - Duplicating Gemara, OSPS Baseline, or Security Insights normative specs.
 
 ### 3.4 Why this scope is non-overlapping with existing TIs
@@ -177,11 +177,12 @@ Same pattern as OSPS Baseline (ORBIT) + Best Practices WG.
 
 ### 8.1 Proposed leads
 
-- **Michael Schwartz** (Gluu) and **Rohit Khare** (Independent) — proposers, co-authors of design and use-case documents. Per CHARTER §3.b, lead is not a lead on another ORBIT TI.
+- **Michael Schwartz** (Gluu) and **Rohit Khare** (Independent) — proposers, co-authors of design and use-case documents. 
 
 ### 8.2 Anticipated contributors
 
-IGA practitioners, GRC engineers, authorization vendors, OSS authz maintainers (see [`openssf-wg-proposal.md`](./openssf-wg-proposal.md)); list confirmed at kickoff.
+IGA practitioners, GRC engineers, authorization vendors, OSS authz maintainers. Currently there are 
+76 members in the [GovOps Group on Linkedin](https://www.linkedin.com/groups/17478011/). 
 
 ### 8.3 Lead succession
 
@@ -212,7 +213,7 @@ Deputy documented within three months per CHARTER §3.b.ii.
 The proposer requests that the ORBIT TSC, by 2/3 majority per CHARTER §3.c:
 
 1. **Approve** the **GovOps Initiative** as a Sandbox Technical Initiative with Phase 1 scope in §3.2 and §4.1.
-2. **Confirm** Michael Schwartz (Gluu) as initiative lead per CHARTER §3.b.
+2. **Confirm** Michael Schwartz (Gluu) and Rohit Khare as initiative leads per CHARTER §3.b.
 3. **Adopt** the charter amendment in §10.
 
 ---
@@ -222,7 +223,7 @@ The proposer requests that the ORBIT TSC, by 2/3 majority per CHARTER §3.c:
 Add to CHARTER.md §3 *Active Technical Initiatives*:
 
 ```markdown
-| GovOps Initiative | Michael Schwartz (@nynymike) |
+| GovOps Initiative | Michael Schwartz (@nynymike), Rohit Khare (@rohitkhare) |
 ```
 
 Ratified by 2/3 TSC majority. Future phases (§4.2) require separate TSC proposals.
