@@ -11,10 +11,9 @@
 **Charter section to amend:** §3 *Technical Initiatives*, *Active Technical Initiatives* table
 
 **Related:**
-- GovOps Phase 1 technical design — [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md)
-- GovOps use cases (companion) — [`enterprise-capability-catalog-use-cases.md`](./enterprise-capability-catalog-use-cases.md)
-- OpenID AuthZEN — PARC (Principal, Action, Resource, Context) **authorization request** shape
-- Signed tokens in **PARC Context** — **JSON Web Tokens** ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)) and similar signed artifacts are commonly passed as **evidence** in the request **Context** for PDPs to evaluate when permitting an **(action, resource)** capability.
+- GovOps Phase 1 technical design — [Authorization Capability Catalog Design](./authorization-capability-catalog-design.md)
+- GovOps use cases (companion) — [Authorization Capability Catalog Use Cases](./authorization-capability-catalog-use-cases.md)
+- OpenID AuthZEN Authorization API - [version 1.0](https://openid.net/specs/authorization-api-1_0.html) which defines PARC (Principal, Action, Resource, Context) **authorization request** shape
 
 ---
 
@@ -27,13 +26,13 @@ GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization
 Phase 1 deliverables use existing Gemara artifact types (no schema changes required to begin):
 
 1. An **Enterprise Capability Profile** of `#Capability` — `GovOps-AC.yaml` whose entries identify capabilities by **`action` and `resource` only**, with optional risk-tier, sensitivity, and documented context expectations (see design document).
-2. A **GovOps repository convention** — `govops/` with `GovOps-AC.yaml`, `#Lexicon`, `mappings/`, and `policies/` (design §5).
+2. A **GovOps repository convention** — `govops/` with `GovOps-AC.yaml`, `#Lexicon`, `mappings/` and `exports/`. (design §5).
 3. **`#MappingDocument` artifacts** linking capability ids to OSPS Baseline, NIST 800-53, ISO 27001, and SOC 2.
 4. **Reference tooling** — `govops lint`, `govops drift`, and the **IGA exporter** (design §10).
 
-A technical design and five persona-driven use cases exist in this repository: [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md) and [`enterprise-capability-catalog-use-cases.md`](./enterprise-capability-catalog-use-cases.md).
+A technical design and five persona-driven use cases exist in this repository: [`authorization-capability-catalog-design.md`](./authorization-capability-catalog-design.md) and [`authorization-capability-catalog-use-cases.md`](./authorization-capability-catalog-use-cases.md).
 
-GovOps Phase 1 is authorization engine-neutral. The catalog describes what is *governed*; at runtime, PDPs evaluate **PARC-shaped requests** (e.g. an OpenID AuthZEN request). **Context** commonly carries facts, e.g. JWTs ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)) or facts obtained by Zanzibar-style authorization graphs. 
+GovOps Phase 1 is authorization engine-neutral. The catalog describes what is *governed*; at runtime, PDPs evaluate **PARC-shaped requests** (e.g. an OpenID AuthZEN Authorization API request). 
 
 ---
 
@@ -75,7 +74,7 @@ Develop and maintain interoperable, engine-neutral **capability catalog** artifa
 
 - New policy languages, evaluation APIs, or policy store specifications.
 - Production PDPs, IGA systems, or runtime enforcement products.
-- Mandating a single PDP or policy language.
+- Mapping any single PDP or policy language.
 - Modeling per-request permission grants 
 - Duplicating Gemara, OSPS Baseline, or Security Insights normative specs.
 
@@ -114,9 +113,6 @@ All Gemara artifacts are CC-BY-4.0 (per ORBIT charter §7.b.iv). All code is Apa
 
 Each phase requires explicit TSC review per CHARTER §3.c.
 
-- **Phase 2 — Provable context expectations.** Optional symbolic proofs over `documented-context-expectations` using Gemara `#EvaluationLog` (design §7.2).
-- **Phase 3 — Reference adapters for common engines.** Read-only emitters of ACC-conformant catalogs from OPA, Cedar, OpenFGA, etc.
-
 The proposer commits only to Phase 1 in §4.1.
 
 ---
@@ -143,7 +139,7 @@ CHARTER §3.c requires interoperability with **no less than two** other TIs. Gov
 
 **What Security Insights gains:** Structured authorization-surface data for SI consumers; downstream story for ADR-0019.
 
-### 5.4 ORBIT Launchpad (Lead: Nicole Bates)
+### 5.4 ORBIT Launchpad (Lead: Nicole Bates, Microsoft)
 
 **Form of interop:** Enterprise catalog patterns + OSS authz tooling compatibility via Launchpad matchmaking.
 
@@ -182,7 +178,7 @@ Same pattern as OSPS Baseline (ORBIT) + Best Practices WG.
 ### 8.2 Anticipated contributors
 
 IGA practitioners, GRC engineers, authorization vendors, OSS authz maintainers. Currently there are 
-76 members in the [GovOps Group on Linkedin](https://www.linkedin.com/groups/17478011/). 
+85 members in the [GovOps Group on Linkedin](https://www.linkedin.com/groups/17478011/). 
 
 ### 8.3 Lead succession
 
@@ -250,8 +246,8 @@ Ratified by 2/3 TSC majority. Future phases (§4.2) require separate TSC proposa
 - Gemara — https://gemara.openssf.org
 - Gemara ADR-0019 — https://gemara.openssf.org/adrs/0019-promote-capabilities
 - Security Insights — http://security-insights.openssf.org/
-- [`enterprise-capability-catalog-design.md`](./enterprise-capability-catalog-design.md)
-- [`enterprise-capability-catalog-use-cases.md`](./enterprise-capability-catalog-use-cases.md)
+- [`authorization-capability-catalog-design.md`](./authorization-capability-catalog-design.md)
+- [`authorization-capability-catalog-use-cases.md`](./authorization-capability-catalog-use-cases.md)
 - [`openssf-wg-proposal.md`](./openssf-wg-proposal.md)
 - OpenID AuthZEN — PARC request shape
 - RFC 7519 — JWT in PARC Context

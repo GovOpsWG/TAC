@@ -4,7 +4,7 @@
 
 **Audience:** Platform Security Engineers, IGA Teams, Compliance Auditors, Policy Engine Operators
 
-**Companion design:** [Cataloging Enterprise Capabilities with Gemara](./enterprise-capability-catalog-design.md)
+**Companion design:** [Cataloging Enterprise Capabilities with Gemara](./authorization-capability-catalog-design.md)
 
 ---
 
@@ -1102,4 +1102,4 @@ A human analyst flagging the same transaction uses the identical capability id a
 
 ---
 
-*Companion to [enterprise-capability-catalog-design.md](./enterprise-capability-catalog-design.md). Tool outputs in each section are consistent with the catalog excerpt and **catalog state** row for that use case (design §8).*
+*Companion to [authorization-capability-catalog-design.md](./authorization-capability-catalog-design.md). Tool outputs in each section are consistent with the catalog excerpt and **catalog state** row for that use case (design §8).*

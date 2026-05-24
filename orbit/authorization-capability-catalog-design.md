@@ -563,9 +563,7 @@ Engine-specific drift plug-ins treat policy formats as opaque. A future phase MA
 
 Gemara already provides `#CapabilityCatalog`, `#MappingDocument`, `#Lexicon`, and optional layered controls. GovOps adds:
 
-- **Enterprise Capability Profile** — capability identity = **(action, resource)**; **PARC** for authorization **requests** only ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519) JWTs in **Context** as typical evidence).
-- **Minimal GovOps repository** — `GovOps-AC`, lexicon, mappings; governance metadata on capabilities; policy as external versioned binaries.
-- **Tooling** — `govops lint`, `govops drift`, IGA export; CI/CD alignment without a parallel scoring silo.
+<!-- add content-->
 
 The *thing governed* is the finite inventory of **(action, resource)** capabilities; *assurance* starts with catalog–policy alignment and framework mappings, with stronger proofs optional later.
 
