@@ -1,4 +1,4 @@
-# Cataloging Enterprise Capabilities with Gemara
+# Authorization Capability Catalog: Design
 
 **Status:** Draft for discussion
 **Audience:** OpenSSF GovOps WG (proposed), Gemara maintainers, GRC and IGA practitioners
@@ -6,7 +6,6 @@
 - [GovOps WG Proposal](./openssf-wg-proposal.md)
 - [Gemara Project](https://gemara.openssf.org) — `#CapabilityCatalog` (stable), ADR-0019 *Promote Capabilities to a First-class Catalog*
 - OpenID AuthZEN — PARC (Principal, Action, Resource, Context) authorization **request** shape
-- Signed tokens in **PARC Context** — A common integration pattern is that **JSON Web Tokens** ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)) and similar signed artifacts are passed as **evidence** inside the request **Context**; the PDP evaluates their claims when deciding whether an **(action, resource)** capability may be permitted for this invocation.
 
 ---
 

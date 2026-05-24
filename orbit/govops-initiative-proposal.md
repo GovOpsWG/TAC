@@ -246,11 +246,9 @@ Ratified by 2/3 TSC majority. Future phases (§4.2) require separate TSC proposa
 - Gemara — https://gemara.openssf.org
 - Gemara ADR-0019 — https://gemara.openssf.org/adrs/0019-promote-capabilities
 - Security Insights — http://security-insights.openssf.org/
-- [`authorization-capability-catalog-design.md`](./authorization-capability-catalog-design.md)
-- [`authorization-capability-catalog-use-cases.md`](./authorization-capability-catalog-use-cases.md)
-- [`openssf-wg-proposal.md`](./openssf-wg-proposal.md)
-- OpenID AuthZEN — PARC request shape
-- RFC 7519 — JWT in PARC Context
+- [Authorization Capability Catalog: Design](./authorization-capability-catalog-design.md)
+- [Authorization Capability Catalog: Use Cases](./authorization-capability-catalog-use-cases.md)
+- [OpenID AuthZEN Authorization API 1.0](https://openid.net/specs/authorization-api-1_0.html)
 
 ---
 
