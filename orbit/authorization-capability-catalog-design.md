@@ -1,11 +1,8 @@
 # Authorization Capability Catalog: Design
 
 **Status:** Draft for discussion
-**Audience:** OpenSSF GovOps WG (proposed), Gemara maintainers, GRC and IGA practitioners
-**Related:**
-- [GovOps WG Proposal](./openssf-wg-proposal.md)
-- [Gemara Project](https://gemara.openssf.org) — `#CapabilityCatalog` (stable), ADR-0019 *Promote Capabilities to a First-class Catalog*
-- OpenID AuthZEN — PARC (Principal, Action, Resource, Context) authorization **request** shape
+
+**Companion design:** [Authorization Capability Catalog: Use Cases](./authorization-capability-catalog-use-cases.md)
 
 ---
 
@@ -96,7 +93,7 @@ PDP implementations should provide different solutions to automate conformance c
 | **Principal** | The actor supplied in a **PARC authorization request** when the PDP is asked whether an operation is permitted. Policy may use principal attributes; the principal does not define the capability. |
 | **Action** | The verb half of a capability (e.g., `read`, `create`, `delete`, `transfer`, `assume`). |
 | **Resource** | The noun half of a capability: the resource **type** the action applies to (e.g., `Invoice`, `BankAccount`, `Repository`, `PolicyDocument`). The catalog records the *type*; runtime requests identify specific instances. |
-| **Context** | Attributes bundled with a **PARC request** (time, IP, approval counts, device posture, etc.), commonly including **signed JWTs** ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)) or similar tokens whose claims the PDP treats as **evidence**. Context answers *whether* a capability may be exercised in this invocation; it is not part of the capability identity. |
+| **Context** | Other facts provided to a **PARC request** |
 | **PARC** | Principal, Action, Resource, Context — the  **authorization request** shape. Used at the PDP boundary; **not** synonymous with "capability." |
 | **Enterprise capability** | A Gemara catalog entry whose **identity** is an **(action, resource)** pair (plus `id`, `title`, `description`, `group` per `#Capability`). Optional fields may document risk, sensitivity, or **expected** policy preconditions; those extensions do not redefine the capability. |
 | **Documented context expectation** | Optional metadata on a capability describing **PARC Context** the organization expects policy to enforce (e.g., MFA, approval counts). Used by `govops drift` and compliance mapping; not part of capability identity. |
@@ -572,7 +569,6 @@ The *thing governed* is the finite inventory of **(action, resource)** capabilit
 
 - Gemara — `capabilitycatalog.cue` (stable), `controlcatalog.cue` (stable), `mapping_inline.cue`, `mappingdocument.cue`, `lexicon.cue`, `entities.cue`, `threatcatalog.cue`, `evaluationlog.cue`.
 - Gemara ADRs — 0017 (Base Catalog Type), 0018 (Promote Nested Concepts to Catalogs), 0019 (Promote Capabilities), 0020 (Groups), 0021 (Lexicon).
-- OpenSSF GovOps WG proposal — `orbit/openssf-wg-proposal.md` (this repository).
 - OpenID AuthZEN — Authorization API specification using the PARC **request** shape.
 - RFC 7519 — JSON Web Token (JWT), commonly used as signed evidence carried in **PARC Context**.
 - NIST SP 800-53 r5, ISO/IEC 27001, SOC 2 — example mapping targets for `#MappingDocument`.
