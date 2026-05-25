@@ -10,11 +10,9 @@
 
 This document proposes a design for representing **enterprise capabilities** — discrete **(action, resource)** pairs the organization recognizes as units of authorization risk and governance — as **first-class catalog entries in the [Gemara](https://gemara.openssf.org) GRC engineering model**, and for organizing a complete **GovOps repository** of Gemara artifacts around them.
 
-In a **capability-based** model, applications and policy engines ask whether a **named operation on a named resource** can be granted; the **capability** is that **(action, resource)** pair, not the requester and not the ambient context. The **PARC Principal**, **Context** (often including **signed JWTs** or other attestations whose claims the PDP interprets), and environmental attributes are **inputs to policy** when a decision is requested — they determine *whether* a capability may be exercised *right now*, not *what* the capability is. OpenID AuthZEN's **PARC** envelope (Principal|Subject, Action, Resource, Context) is the standard shape of that **authorization request** at the PDP boundary; it is not the definition of a capability.
-
 Three ideas combine to form the design:
 
-1. **Capabilities are action–resource pairs**;  At evaluation time, a PDP receives a **PARC-shaped request**. Engine neutrality comes from the fact that every PDP class can consume PARC-shaped requests while the catalog stays a domain-centric inventory of discrete **(action, resource)** entries — separate from person-centric **entitlement** matrices maintained in IAM or IGA systems.
+1. **Capabilities are action–resource pairs**;  At evaluation time, a PDP receives a **PARC-shaped request**. Engine neutrality comes from the fact that every PDP class can consume PARC-shaped requests while the catalog stays a domain-centric inventory of discrete **(action, resource)** entries.
 2. **A GovOps repository centered on `GovOps-AC`.** A single `#CapabilityCatalog` inventories the enterprise's authorization surface; a `#Lexicon` defines canonical terms; and `#MappingDocument` files link capabilities to compliance frameworks. Governance metadata (risk-tier, sensitivity, documented context expectations) lives **on the capability entries**, not in a parallel pillar or scoring framework. **Policy binaries are not stored in this repository** — they are authored and published separately as versioned artifacts and distributed using software supply-chain trust models (signing, provenance, registries).
 3. **Catalog–policy alignment.** `govops lint` validates the catalog; `govops drift` compares the catalog to **published policy releases** (supplied at run time by URI, digest, or local path) so the authorization surface stays enumerable and aligned with enforcement.
 
@@ -26,21 +24,12 @@ Gemara already provides 90% of the substrate: a stable `#CapabilityCatalog` (ADR
 
 ### 2.1 What enterprises need to govern
 
-Modern enterprises run thousands of services, APIs, and autonomous agents. Each participates in authorization decisions that are ultimately answered as: *given this PARC Principal (requester), this action on this resource, and this context (including token and environmental evidence), does policy permit the operation?*
-
-Today the **authorization surface** — the set of meaningful **(action, resource)** combinations the estate exposes — is described in many incompatible ways:
-
-- IAM systems (AWS, Azure, GCP) each define their own service / action / resource taxonomies.
-- IGA platforms model "entitlements" as opaque rows in a directory.
-- Application teams hard-code action / resource pairs in policy engines (Cedar, OPA / Rego, OpenFGA, AuthZEN PDPs, Casbin, custom RBAC).
-- Compliance teams describe the same surface in prose ("limit access to PII to authorized personnel") with no machine-readable link to enforcement.
-
-The **GovOps WG proposal** (Objective #2, *"Govern Capabilities, Not Just Identities"*) explicitly calls out the need to expand governance from *"who has which role"* to governing **what operations on what resources** exist and how they are controlled. That requires a shared, declarative inventory — a **catalog of (action, resource) capabilities** — that is:
+GovOps requires a shared, declarative inventory — a **catalog of (action, resource) capabilities** — that is:
 
 1. **Finitely enumerable** so it can be reviewed, measured, and reasoned about (GovOps Objective #3).
-2. **Engine neutral** so policy can be analyzed across Cedar, OPA, OpenFGA, IAM, graph engines, and AuthZEN-conformant PDPs.
-3. **Composable** with threats, controls, risks, and policies so a capability becomes traceable from "what the enterprise exposes as authorizable" through "what could go wrong" to "what we measure and enforce."
-4. **GRC-aligned** to plug into ISO 27001, SOC 2, NIST 800-53 reporting without a parallel data model.
+2. **Engine neutral** so policy can be analyzed across any AuthZEN-conformant PDP (e.g. OPA, Cedarling, OpenFGA).
+3. **Composable** with threats, controls, risks, and policies so a capability becomes a traceable unit of governance linking exposed operations, associated risks, and measurable enforcement outcomes.
+4. **GRC-aligned** with CNCF tools like OSCAL Compass and Trestle. 
 
 ### 2.2 Capabilities are (action, resource); PARC is how PDPs evaluate requests
 

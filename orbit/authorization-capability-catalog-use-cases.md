@@ -2,8 +2,6 @@
 
 **Status:** Draft for discussion
 
-**Audience:** Platform Security Engineers, IGA Teams, Compliance Auditors, Policy Engine Operators
-
 **Companion design:** [Authorization Capability Catalog: Design](./authorization-capability-catalog-design.md)
 
 ---
