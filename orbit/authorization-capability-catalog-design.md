@@ -88,7 +88,7 @@ A GovOps repository is a directory of **Gemara artifacts** that describe the ent
 govops/
   lexicon.yaml                       # #Lexicon
   metadata.yaml                      # shared metadata fragments (optional)
-  GovOps-AC.yaml                     # #CapabilityCatalog (Authorization Capability Profile)
+  GovOps-ACC.yaml                     # #CapabilityCatalog (Authorization Capability Profile)
   mappings/                          # #MappingDocument files (NIST, ISO, SOC 2, OSPS, ...)
   exports/                           # IGA exporter output (CSV, etc.; optional)
 ```
