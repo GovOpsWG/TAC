@@ -24,27 +24,14 @@ Gemara already provides 90% of the substrate: a stable `#CapabilityCatalog` (ADR
 
 ### 2.1 What enterprises need to govern
 
-GovOps requires a shared, declarative inventory — a **catalog of (action, resource) capabilities** — that is:
+GovOps requires a shared, declarative inventory of **(action, resource) capabilities** — that is:
 
-1. **Finitely enumerable** so it can be reviewed, measured, and reasoned about (GovOps Objective #3).
-2. **Engine neutral** so policy can be analyzed across any AuthZEN-conformant PDP (e.g. OPA, Cedarling, OpenFGA).
+1. **Finitely enumerable** so it can be reviewed, measured, and analyzed.
+2. **Engine neutral** compatible with any AuthZEN-conformant PDP (e.g. OPA, Cedarling, OpenFGA).
 3. **Composable** with threats, controls, risks, and policies so a capability becomes a traceable unit of governance linking exposed operations, associated risks, and measurable enforcement outcomes.
 4. **GRC-aligned** with CNCF tools like OSCAL Compass and Trestle. 
 
-### 2.2 Capabilities are (action, resource); PARC is how PDPs evaluate requests
-
-A **capability** is an **(action, resource)** pair: a discrete, nameable operation on a resource type in a domain. It is **not** a principal, not a role, and not a context tuple. Risk and governance attach to the pair itself; **Context** (including JWT-derived claims) supplies evidence at evaluation time, not the capability's identity.
-
-The OpenID AuthZEN working group standardizes **PARC** — Principal|Subject, Action, Resource, Context — as the **payload of an authorization request** to a PDP. A conforming PDP accepts a PARC-shaped request and returns Permit / Deny plus optional obligations and reasons. PARC is intentionally orthogonal to the policy store strategy:
-
-- A **policy-language PDP** (Cedar, Rego) evaluates rules over PARC-shaped requests.
-- A **relationship/graph PDP** (OpenFGA, Zanzibar) checks reachability given PARC-shaped inputs.
-- An **ABAC engine** evaluates attribute predicates over PARC-shaped inputs.
-- An **RBAC mapper** resolves the Principal's roles and ultimately answers about **action on resource** for a concrete request.
-
-**Relationship between the catalog and PARC.** The **GovOps-AC** catalog lists **capabilities** — **(action, resource)** — the organization treats as first-class. When an application asks for a decision, it sends a **PARC request** whose **Action** and **Resource** (and usually resource instance identifier) refer to one of those capabilities; **Principal** and **Context** supply the evidence policy uses to decide **whether that capability may be exercised in this invocation** — including, in typical deployments, **signed JWTs** or equivalent tokens whose claims appear in **Context** for the PDP to evaluate. The catalog is therefore a domain-centric **registry of (action, resource) capabilities**; PARC is the wire-level shape of the authorization **question**, not the definition of the capability.
-
-### 2.3 Why Gemara
+### 2.2 Why Gemara
 
 Gemara already supplies:
 
@@ -55,22 +42,6 @@ Gemara already supplies:
 - A `#Catalog` base that supports `extends` and `imports` for vendor-specific or industry overlays.
 
 In short, Gemara already has the right *shape*; what is missing is a profile that constrains `#Capability` to carry a well-typed **(action, resource)** capability identity, plus conventions for organizing controls and evidence around that inventory — without conflating the catalog with the PARC request envelope.
-
-### 2.4 Automated policy conformance
-
-GRC frameworks today express requirements as **assertions about configuration**:
-
-> "Sensitive transactions MUST require multi-factor authentication."
-
-Compliance is then attested by an auditor checking that an MFA toggle is on. That tells us the *control is present*; it does not tell us the *control is sufficient*.
-
-GovOps + Gemara can elevate the standard. With a **(action, resource)** capability catalog and a **published policy release** (versioned binary evaluated out-of-band from the GovOps repo), the same requirement can be expressed as a **claim about the enforced authorization surface**:
-
-> "There exists no satisfiable authorization state in which capability `payments:transfer:bank-account` (the pair **transfer** on **BankAccount**) may be permitted and `context.acr` is not `urn:mfa`."
-
-That claim is stated over **requests** (PARC-shaped evaluations for that action and resource); the **capability** in the catalog remains only **transfer / BankAccount**. 
-
-PDP implementations should provide different solutions to automate conformance checks, with the goal of reducing manual reviews by human auditors. 
 
 ---
 
