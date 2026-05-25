@@ -99,7 +99,7 @@ Mapping each top-level item to a Gemara artifact type:
 |---|---|---|
 | `lexicon.yaml` | `#Lexicon` | Canonical action verbs and resource type names. |
 | `metadata.yaml` | shared `#Metadata` includes | Author, version, lexicon reference, applicability groups. |
-| `GovOps-ACC.yaml` | `#CapabilityCatalog` of `#AuthorizationCapability` | Authorization authorization surface. |
+| `GovOps-ACC.yaml` | `#CapabilityCatalog` of `#AuthorizationCapability` | Enterprise authorization surface. |
 | `mappings/` | `#MappingDocument` | Capability-to-framework mappings. |
 | `exports/` | convention | IGA-ingestible views of the catalog (optional). |
 
