@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document shows how enterprise personas use the **GovOps authorization capability catalog** (`GovOps-AC`) and Phase 1 toolchain in real workflows. The design document specifies the artifact model; this document shows **how** it is used.
+This document shows how enterprise personas use the **GovOps Authorization Capability Catalog** (`GovOps-AC`) and Phase 1 toolchain in real workflows. The design document specifies the artifact model; this document shows **how** it is used.
 
 Six use cases at **Acme Bank** share a payments, lending, and fraud authorization domain. **UC-01** establishes four base capabilities; later use cases show catalog evolution (additional ids, deprecations) as called out below.
 
@@ -101,7 +101,7 @@ metadata:
   id: lex.govops.actions-resources
   type: Lexicon
   gemara-version: "0.x"
-  description: Canonical verbs and resource type names for Acme enterprise capabilities.
+  description: Canonical verbs and resource type names for Acme authorization capabilities.
   author: { id: acme-platform-security, name: Acme Platform Security, type: Software Assisted }
 terms:
   - id: action.read
@@ -156,7 +156,7 @@ encoded in the `id` field and a YAML front-matter block inside `description`.
 
 ```yaml
 # govops/GovOps-AC.yaml  (excerpt — Profile A entry)
-title: Acme Enterprise Capability Catalog
+title: Acme Authorization Capability Catalog
 metadata:
   id: cat.acme.ec
   type: CapabilityCatalog
@@ -215,13 +215,13 @@ capabilities:
 **Step 3 — Author a capability entry using the schema extension profile (Profile B).**
 
 The engineer adds the `payments:transfer:bank-account` capability using the
-`#EnterpriseCapability` schema extension (design §6.2(B)). This profile makes
+`#AuthorizationCapability` schema extension (design §6.2(B)). This profile makes
 `action`, `resource`, and optional fields first-class typed fields rather than
 front-matter strings. It is the recommended profile once the GovOps WG overlay package
 is available.
 
 ```yaml
-  # --- Profile B: #EnterpriseCapability schema extension ---
+  # --- Profile B: #AuthorizationCapability schema extension ---
   - id: payments:transfer:bank-account
     title: Transfer funds
     group: g.payments
@@ -379,7 +379,7 @@ The engineer confirms that `risk-tier` and `sensitivity` assignments will scope 
 |---|---|
 | Convention-only profile (Profile A) | Design §6.2(A) |
 | Schema extension profile (Profile B) | Design §6.2(B) |
-| `#EnterpriseCapability` CUE definition | Design §6.2(B) |
+| `#AuthorizationCapability` CUE definition | Design §6.2(B) |
 | `#Lexicon` artifact | Design §6.4 |
 | `#Group` and applicability-groups | Design §6.3 |
 | `govops lint` tool | Design §10 |

@@ -8,7 +8,7 @@
 
 ## 1. Abstract
 
-This document proposes a design for representing **enterprise capabilities** — discrete **(action, resource)** pairs the organization recognizes as units of authorization risk and governance — as **first-class catalog entries in the [Gemara](https://gemara.openssf.org) GRC engineering model**, and for organizing a complete **GovOps repository** of Gemara artifacts around them.
+This document proposes a design for representing **authorization capabilities** — discrete **(action, resource)** pairs the organization recognizes as units of authorization risk and governance — as **first-class catalog entries in the [Gemara](https://gemara.openssf.org) GRC engineering model**, and for organizing a complete **GovOps repository** of Gemara artifacts around them.
 
 Three ideas combine to form the design:
 
@@ -16,7 +16,7 @@ Three ideas combine to form the design:
 2. **A GovOps repository centered on `GovOps-AC`.** A single `#CapabilityCatalog` inventories the enterprise's authorization surface; a `#Lexicon` defines canonical terms; and `#MappingDocument` files link capabilities to compliance frameworks. Governance metadata (risk-tier, sensitivity, documented context expectations) lives **on the capability entries**, not in a parallel pillar or scoring framework. **Policy binaries are not stored in this repository** — they are authored and published separately as versioned artifacts and distributed using software supply-chain trust models (signing, provenance, registries).
 3. **Catalog–policy alignment.** `govops lint` validates the catalog; `govops drift` compares the catalog to **published policy releases** (supplied at run time by URI, digest, or local path) so the authorization surface stays enumerable and aligned with enforcement.
 
-Gemara already provides 90% of the substrate: a stable `#CapabilityCatalog` (ADR-0019), `#ControlCatalog` and `#AssessmentRequirement`, mapping primitives that include `Capability` as an `EntryType`, `#Lexicon`, `#EvaluationLog`, `#EnforcementLog`, and `#AuditLog`. The remaining 10% is a small, additive **Enterprise Capability Profile** of `#Capability` and a set of conventions for arranging the artifacts.
+Gemara already provides 90% of the substrate: a stable `#CapabilityCatalog` (ADR-0019), `#ControlCatalog` and `#AssessmentRequirement`, mapping primitives that include `Capability` as an `EntryType`, `#Lexicon`, `#EvaluationLog`, `#EnforcementLog`, and `#AuditLog`. The remaining 10% is a small, additive **Authorization Capability Profile** of `#Capability` and a set of conventions for arranging the artifacts.
 
 ---
 
@@ -55,7 +55,7 @@ In short, Gemara already has the right *shape*; what is missing is a profile tha
 | **Resource** | The noun half of a capability: the resource **type** the action applies to (e.g., `Invoice`, `BankAccount`, `Repository`, `PolicyDocument`). The catalog records the *type*; runtime requests identify specific instances. |
 | **Context** | Other facts provided to a **PARC request** |
 | **PARC** | Principal, Action, Resource, Context — the  **authorization request** shape. Used at the PDP boundary; **not** synonymous with "capability." |
-| **Enterprise capability** | A Gemara catalog entry whose **identity** is an **(action, resource)** pair (plus `id`, `title`, `description`, `group` per `#Capability`). Optional fields may document risk, sensitivity, or **expected** policy preconditions; those extensions do not redefine the capability. |
+| **Authorization capability** | A Gemara catalog entry whose **identity** is an **(action, resource)** pair (plus `id`, `title`, `description`, `group` per `#Capability`). Optional fields may document risk, sensitivity, or **expected** policy preconditions; those extensions do not redefine the capability. |
 | **Documented context expectation** | Optional metadata on a capability describing **PARC Context** the organization expects policy to enforce (e.g., MFA, approval counts). Used by `govops drift` and compliance mapping; not part of capability identity. |
 
 ---
@@ -70,13 +70,13 @@ In short, Gemara already has the right *shape*; what is missing is a profile tha
 4. **GRC-aligned.** Each capability can be mapped to entries in NIST 800-53, ISO 27001, SOC 2 via `#MappingDocument`.
 5. **Reviewable.** The catalog is the canonical input to IGA access reviews, compliance queries, and drift detection.
 
-### Non-goals
+### Some Non-goals
 
 - Defining a new policy language, evaluation API, or policy store specification.
 - Publshing policy artifacts 
-- Modeling individual permission grants to specific principals (that is a runtime decision/enforcement concern — Gemara Layers 5–7).
-- Capturing resource instance hierarchies or organizational topology.
-- Replacing IGA entitlement catalogs. The two can coexist; the enterprise capability catalog can feed an IGA catalog or be derived from one.
+- Modeling individual permission grants to specific principals
+- Capturing resource instance hierarchies or organizational topology
+- Replacing IGA entitlement catalogs. The two can coexist; the authorization capability catalog can feed an IGA catalog or be derived from one.
 
 ---
 
@@ -88,7 +88,7 @@ A GovOps repository is a directory of **Gemara artifacts** that describe the ent
 govops/
   lexicon.yaml                       # #Lexicon
   metadata.yaml                      # shared metadata fragments (optional)
-  GovOps-AC.yaml                     # #CapabilityCatalog (Enterprise Capability Profile)
+  GovOps-AC.yaml                     # #CapabilityCatalog (Authorization Capability Profile)
   mappings/                          # #MappingDocument files (NIST, ISO, SOC 2, OSPS, ...)
   exports/                           # IGA exporter output (CSV, etc.; optional)
 ```
@@ -99,7 +99,7 @@ Mapping each top-level item to a Gemara artifact type:
 |---|---|---|
 | `lexicon.yaml` | `#Lexicon` | Canonical action verbs and resource type names. |
 | `metadata.yaml` | shared `#Metadata` includes | Author, version, lexicon reference, applicability groups. |
-| `GovOps-AC.yaml` | `#CapabilityCatalog` of `#EnterpriseCapability` | Enterprise authorization surface. |
+| `GovOps-ACC.yaml` | `#CapabilityCatalog` of `#AuthorizationCapability` | Authorization authorization surface. |
 | `mappings/` | `#MappingDocument` | Capability-to-framework mappings. |
 | `exports/` | convention | IGA-ingestible views of the catalog (optional). |
 
@@ -107,10 +107,9 @@ Notes:
 
 - Nothing in the layout is normative. Organizations MAY add other Gemara catalogs (`#ControlCatalog`, `#ThreatCatalog`, `#EvaluationLog`) using the standard Gemara model; those are **not** part of the ACC core layout.
 
-
 ---
 
-## 6. The Enterprise Capability Catalog (`GovOps-AC`)
+## 6. The Authorization Capability Catalog (`GovOps-ACC`)
 
 ### 6.1 Where it sits in Gemara
 
@@ -132,7 +131,7 @@ Layer 7   Audit logs
       - measured by Evaluation/Enforcement logs (coverage, drift, proof)
 ```
 
-### 6.2 The Enterprise Capability Profile
+### 6.2 The Authorization Capability Profile
 
 Two equivalent encodings are offered. Authors MAY pick (A) for a zero-schema-change start and migrate to (B) when the schema extension is ratified by Gemara.
 
@@ -169,17 +168,17 @@ This validates against today's stable `#CapabilityCatalog`. Tooling parses the f
 
 #### (B) Schema extension (recommended)
 
-Introduce `#EnterpriseCapability` as an embedding of `#Capability`. The CUE definition (intended for upstream contribution to Gemara, or hosted as a sibling overlay module under the GovOps WG):
+Introduce `#AuthorizationCapability` as an embedding of `#Capability`. The CUE definition (intended for upstream contribution to Gemara, or hosted as a sibling overlay module under the GovOps WG):
 
 ```cue
 // Schema lifecycle: experimental
 @status("experimental")
 package gemara
 
-// EnterpriseCapability is a Capability whose identity is the pair
+// AuthorizationCapability is a Capability whose identity is the pair
 // (action, resource). Optional fields document risk, sensitivity, or
 // expected PDP / policy context — they are NOT part of the capability.
-#EnterpriseCapability: {
+#AuthorizationCapability: {
     #Capability
 
     // action + resource together ARE the capability identity.
@@ -250,7 +249,7 @@ The **normative** fields that define what is being governed are **`action` and `
 `#Group` (post ADR-0020) is the single grouping primitive. Use it for **service** or **domain**:
 
 - `groups`: one entry per service or business domain (e.g., `payments`, `iam`, `governance`, `release-engineering`).
-- Each `#EnterpriseCapability.group` references a group `id`.
+- Each `#AuthorizationCapability.group` references a group `id`.
 
 Use `metadata.applicability-groups` for orthogonal classifications that drive metrics:
 
@@ -271,7 +270,7 @@ metadata:
   id: lex.govops.actions-resources
   type: Lexicon
   gemara-version: "0.x"
-  description: Canonical verbs and resource type names for enterprise capabilities.
+  description: Canonical verbs and resource type names for authorization capabilities.
   author: { id: govops-wg, name: GovOps WG, type: Software Assisted }
 terms:
   - id: action.transfer
@@ -291,14 +290,14 @@ Gemara already defines `#Resource` (in `entities.cue`) as a runtime entity that 
 
 The two stay separate:
 
-- `#EnterpriseCapability.resource` is the **resource type** half of the capability (e.g., `BankAccount`).
+- `#AuthorizationCapability.resource` is the **resource type** half of the capability (e.g., `BankAccount`).
 - `#Resource` (entities) is a **runtime instance** being evaluated (e.g., the production payments service running v1.4.2).
 
-A measurement record carries both: the `target` of an evaluation log is a `#Resource`; what was *evaluated about it* is the conformance of its policies to a set of `#EnterpriseCapability` entries (each keyed by **action + resource**).
+A measurement record carries both: the `target` of an evaluation log is a `#Resource`; what was *evaluated about it* is the conformance of its policies to a set of `#AuthorizationCapability` entries (each keyed by **action + resource**).
 
 ### 6.6 Threats and risks over capabilities
 
-Gemara's existing `#Threat.capabilities` field already accepts `#MultiEntryMapping`, so threats can target an enterprise capability without any additional schema work:
+Gemara's existing `#Threat.capabilities` field already accepts `#MultiEntryMapping`, so threats can target an authorization capability without any additional schema work:
 
 ```yaml
 threats:
@@ -312,7 +311,7 @@ threats:
           - reference-id: payments:transfer:bank-account
 ```
 
-Layer-3 `#Risk` entries and `#Policy` documents reference threats and controls in turn, so a single line of an enterprise capability flows through the entire seven-layer model.
+Layer-3 `#Risk` entries and `#Policy` documents reference threats and controls in turn, so a single line of an authorization capability flows through the entire seven-layer model.
 
 ---
 
@@ -337,7 +336,7 @@ A minimal **Acme Bank** payments scenario: catalog authoring, compliance mapping
 ### 8.1 `GovOps-AC.yaml` (excerpt)
 
 ```yaml
-title: Acme Enterprise Capability Catalog
+title: Acme Authorization Capability Catalog
 metadata:
   id: cat.acme.ec
   type: CapabilityCatalog
@@ -434,7 +433,7 @@ metadata:
   type: MappingDocument
   mapping-references:
     - id: ec
-      title: Acme Enterprise Capability Catalog
+      title: Acme Authorization Capability Catalog
     - id: nist80053r5
       title: NIST SP 800-53 Rev. 5
 source-reference:
@@ -494,9 +493,9 @@ Engine-specific drift plug-ins treat policy formats as opaque. A future phase MA
 
 **Phase 0 — Convention-only profile (today).** Use stable `#CapabilityCatalog` with §6.2(A) front-matter; validate with existing Gemara tooling.
 
-**Phase 1 — GovOps overlay and reference mappings.** Publish `#EnterpriseCapability` CUE overlay, reference `GovOps-AC` templates, NIST/ISO/SOC 2 mapping examples, `govops lint` and `govops drift`.
+**Phase 1 — GovOps overlay and reference mappings.** Publish `#AuthorizationCapability` CUE overlay, reference `GovOps-AC` templates, NIST/ISO/SOC 2 mapping examples, `govops lint` and `govops drift`.
 
-**Phase 2 — Upstream into Gemara.** Propose `#EnterpriseCapability` via Gemara ADR when stable.
+**Phase 2 — Upstream into Gemara.** Propose `#AuthorizationCapability` via Gemara ADR when stable.
 
 **Phase 3 — Engine adapters and optional proofs.** Read-only catalog emitters for common PDPs; optional provable-claim workflow.
 
