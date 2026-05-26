@@ -25,7 +25,7 @@ GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization
 
 Phase 1 deliverables use existing Gemara artifact types (no schema changes required to begin):
 
-1. An **Enterprise Capability Profile** of `#Capability` — `GovOps-AC.yaml` whose entries identify capabilities by **`action` and `resource` only**, with optional risk-tier, sensitivity, and documented context expectations (see design document).
+1. An **Authorization Capability Profile** of `#Capability` — `GovOps-AC.yaml` whose entries identify capabilities by **`group`, `action`, and `resource`** (hashed into an opaque `id`), with optional risk-tier, sensitivity, and documented context expectations (see design document).
 2. A **GovOps repository convention** — `govops/` with `GovOps-AC.yaml`, `#Lexicon`, `mappings/` and `exports/`. (design §5).
 3. **`#MappingDocument` artifacts** linking capability ids to OSPS Baseline, NIST 800-53, ISO 27001, and SOC 2.
 4. **Reference tooling** — `govops lint`, `govops drift`, and the **IGA exporter** (design §10).
@@ -44,7 +44,7 @@ Today the authorization surface is catalogued indirectly — entitlements, roles
 
 Specifically, GovOps:
 
-- Makes the authorization surface **identifiable** as a finite set of capability ids.
+- Makes the authorization surface **identifiable** as a finite set of opaque capability ids (SHA-256 of group, action, and resource slugs).
 - Makes it **presentable** as Gemara YAML/JSON validatable against stable schema.
 - Makes compliance and IGA workflows **interoperable** via `#MappingDocument` links to common frameworks.
 
@@ -62,7 +62,7 @@ Develop and maintain interoperable, engine-neutral **capability catalog** artifa
 
 ### 3.2 Phase 1 — In scope (year 1)
 
-- **Enterprise Capability Profile** (EC Profile) — `action` + `resource` capability identity; convention-only first, then candidate `#EnterpriseCapability` ADR to Gemara.
+- **Authorization Capability Profile** — `group` + `action` + `resource` capability identity (opaque hashed `id`); convention-only first, then candidate `#AuthorizationCapability` ADR to Gemara.
 - **GovOps repository convention** — `GovOps-AC.yaml`, lexicon, mappings, policies (design §5).
 - Reference **mapping documents** to OSPS Baseline, NIST 800-53, ISO 27001, SOC 2.
 - **OSS-project-sized template** for typical maintainers.

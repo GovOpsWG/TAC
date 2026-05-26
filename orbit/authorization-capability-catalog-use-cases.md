@@ -10,14 +10,14 @@
 
 This document shows how enterprise personas use the **GovOps Authorization Capability Catalog** (`GovOps-AC`) and Phase 1 toolchain in real workflows. The design document specifies the artifact model; this document shows **how** it is used.
 
-Six use cases at **Acme Bank** share a payments, lending, and fraud authorization domain. **UC-01** establishes four base capabilities; later use cases show catalog evolution (additional ids, deprecations) as called out below.
+Six use cases at **Acme Bank** share a payments, lending, and fraud authorization domain. **UC-01** establishes four base capabilities; later use cases show catalog evolution (additional ids, deprecations) as called out below. Capability **ids** are SHA-256 digests of `<group-slug>|<action-slug>|<resource-slug>` (design §6.2); **title** and export columns carry human-readable labels.
 
 | Capability id | Domain | Risk (initial) | Role in scenario |
 |---|---|---|---|
-| `payments|read|invoice` | Payments | medium | Profile A example; deprecated in UC-03 |
-| `payments|transfer|bank-account` | Payments | critical | High-value transfer; MFA in context |
-| `lending|approve|loan` | Lending | critical | Human approvers; SoD in context |
-| `fraud|flag|transaction` | Fraud | high | Fraud System + analysts (UC-06) |
+| `18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7` | Payments | medium | Profile A example; deprecated in UC-03 |
+| `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3` | Payments | critical | High-value transfer; MFA in context |
+| `3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd` | Lending | critical | Human approvers; SoD in context |
+| `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` | Fraud | high | Fraud System + analysts (UC-06) |
 
 Governance metadata (risk-tier, sensitivity, documented context expectations) lives **on capability entries** — not in a separate metrics framework.
 
@@ -56,8 +56,8 @@ Tooling in scope: `govops lint`, `govops drift`, IGA exporter. CI/CD runs lint a
 | Use case | `GovOps-AC` state |
 |---|---|
 | UC-01, UC-02, UC-06 | Four base capabilities only |
-| UC-03 | Adds `payments|batch-transfer|bank-account`, `payments|read|invoice-summary`; deprecates `payments|read|invoice` |
-| UC-04, UC-05 | Assumes UC-03 catalog plus `fraud|escalate|transaction` (UC-04) |
+| UC-03 | Adds `d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2`, `6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb`; deprecates `18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7` |
+| UC-04, UC-05 | Assumes UC-03 catalog plus `71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835` (UC-04) |
 
 ---
 
@@ -151,8 +151,9 @@ terms:
 
 The engineer creates `govops/GovOps-AC.yaml` and adds the first capability entry using
 the convention-only profile (design §6.2(A)). This profile requires no schema change
-and validates against the stable `#CapabilityCatalog` today. The structured payload is
-encoded in the `id` field and a YAML front-matter block inside `description`.
+and validates against the stable `#CapabilityCatalog` today. The capability `id` is the
+SHA-256 digest of `<group-slug>|<action-slug>|<resource-slug>`; slugs are recorded in a
+YAML front-matter block inside `description` (Profile A) or as typed fields (Profile B).
 
 ```yaml
 # govops/GovOps-AC.yaml  (excerpt — Profile A entry)
@@ -195,13 +196,14 @@ groups:
     description: Capabilities exposed by the fraud detection service.
 capabilities:
   # --- Profile A: convention-only (no schema change required) ---
-  - id: payments|read|invoice
+  - id: 18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7
     title: Read invoice
     group: g.payments
     description: |
       ---
+      group: payments
       action: read
-      resource: Invoice
+      resource: invoice
       documentation:
         typical-requester-classes: [interactive-subject, software-agent, autonomous-actor]
       data-sensitivity: pii
@@ -214,7 +216,7 @@ capabilities:
 
 **Step 3 — Author a capability entry using the schema extension profile (Profile B).**
 
-The engineer adds the `payments|transfer|bank-account` capability using the
+The engineer adds the `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3` capability using the
 `#AuthorizationCapability` schema extension (design §6.2(B)). This profile makes
 `action`, `resource`, and optional fields first-class typed fields rather than
 front-matter strings. It is the recommended profile once the GovOps WG overlay package
@@ -222,11 +224,11 @@ is available.
 
 ```yaml
   # --- Profile B: #AuthorizationCapability schema extension ---
-  - id: payments|transfer|bank-account
+  - id: 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
     title: Transfer funds
     group: g.payments
     action: transfer
-    resource: BankAccount
+    resource: bank-account
     documented-requester-classes: [interactive-subject, software-agent]
     documented-context-expectations:
       - id: c.mfa
@@ -243,11 +245,11 @@ is available.
       Initiate a funds transfer between bank accounts in the payments domain.
       This is the highest-risk payments capability.
 
-  - id: lending|approve|loan
+  - id: 3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd
     title: Approve loan
     group: g.lending
     action: approve
-    resource: Loan
+    resource: loan
     documented-requester-classes: [interactive-subject]
     documented-context-expectations:
       - id: c.approvals
@@ -261,11 +263,11 @@ is available.
       Approve a loan application or facility change. Lending Officers steward this
       capability; requires separation of duties.
 
-  - id: fraud|flag|transaction
+  - id: ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2
     title: Flag transaction
     group: g.fraud
     action: flag
-    resource: Transaction
+    resource: transaction
     documented-requester-classes: [software-agent, interactive-subject]
     documented-context-expectations:
       - id: c.risk-score
@@ -294,14 +296,14 @@ $ govops lint govops/GovOps-AC.yaml --lexicon govops/lexicon.yaml
 govops lint v0.9.0
 Checking: govops/GovOps-AC.yaml
 
-  ✓ Lexicon resolved: action.read       → payments|read|invoice
-  ✓ Lexicon resolved: action.transfer   → payments|transfer|bank-account
-  ✓ Lexicon resolved: action.approve    → lending|approve|loan
-  ✓ Lexicon resolved: action.flag       → fraud|flag|transaction
-  ✓ Lexicon resolved: resource.invoice  → payments|read|invoice
-  ✓ Lexicon resolved: resource.bank-account → payments|transfer|bank-account
-  ✓ Lexicon resolved: resource.loan     → lending|approve|loan
-  ✓ Lexicon resolved: resource.transaction → fraud|flag|transaction
+  ✓ Lexicon resolved: action.read       → 18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7
+  ✓ Lexicon resolved: action.transfer   → 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
+  ✓ Lexicon resolved: action.approve    → 3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd
+  ✓ Lexicon resolved: action.flag       → ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2
+  ✓ Lexicon resolved: resource.invoice  → 18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7
+  ✓ Lexicon resolved: resource.bank-account → 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
+  ✓ Lexicon resolved: resource.loan     → 3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd
+  ✓ Lexicon resolved: resource.transaction → ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2
   ✓ Group membership: all capabilities reference defined groups
   ✓ Applicability groups: all values within declared group value sets
   ✓ No engine-binding well-formedness errors
@@ -312,15 +314,15 @@ Checking: govops/GovOps-AC.yaml
 **Step 5 — Introduce a lexicon resolution failure and observe the lint error.**
 
 The engineer temporarily adds a capability that references an action term not in the
-lexicon — `payments|settle|payment-order` — where `settle` has not been defined.
+lexicon (`settle` on `payment-order`) — id `00c467f0c7ba1fb43ec62a7b4c7d49ad0cca67fb93eba91114acc2fd1217647e`.
 
 ```yaml
   # Intentionally broken entry (not in final catalog)
-  - id: payments|settle|payment-order
+  - id: 00c467f0c7ba1fb43ec62a7b4c7d49ad0cca67fb93eba91114acc2fd1217647e
     title: Settle payment order
     group: g.payments
     action: settle
-    resource: PaymentOrder
+    resource: payment-order
     risk-tier: high
 ```
 
@@ -332,15 +334,15 @@ $ govops lint govops/GovOps-AC.yaml --lexicon govops/lexicon.yaml
 govops lint v0.9.0
 Checking: govops/GovOps-AC.yaml
 
-  ✓ Lexicon resolved: action.read       → payments|read|invoice
-  ✓ Lexicon resolved: action.transfer   → payments|transfer|bank-account
-  ✓ Lexicon resolved: action.approve    → lending|approve|loan
-  ✓ Lexicon resolved: action.flag       → fraud|flag|transaction
+  ✓ Lexicon resolved: action.read       → 18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7
+  ✓ Lexicon resolved: action.transfer   → 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
+  ✓ Lexicon resolved: action.approve    → 3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd
+  ✓ Lexicon resolved: action.flag       → ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2
   ✗ Lexicon resolution FAILED: action 'settle' not found in lex.govops.actions-resources
-      capability: payments|settle|payment-order
+      capability: 00c467f0c7ba1fb43ec62a7b4c7d49ad0cca67fb93eba91114acc2fd1217647e
       suggestion: Did you mean 'transfer'? Or add action.settle to lexicon.yaml.
-  ✗ Lexicon resolution FAILED: resource 'PaymentOrder' not found in lex.govops.actions-resources
-      capability: payments|settle|payment-order
+  ✗ Lexicon resolution FAILED: resource 'payment-order' not found in lex.govops.actions-resources
+      capability: 00c467f0c7ba1fb43ec62a7b4c7d49ad0cca67fb93eba91114acc2fd1217647e
       suggestion: Add resource.payment-order to lexicon.yaml.
 
 5 capabilities checked. 2 errors. 0 warnings.
@@ -364,12 +366,12 @@ The engineer confirms that `risk-tier` and `sensitivity` assignments will scope 
 
 ### Correctness Properties Demonstrated
 
-- **P1 (Capability ID Format):** All four capability ids (`payments|read|invoice`,
-  `payments|transfer|bank-account`, `lending|approve|loan`,
-  `fraud|flag|transaction`) match `^[a-z][a-z0-9-]*\|[a-z][a-z0-9-]*\|[a-z][a-z0-9-]*$` (`<group>|<action>|<resource>`).
+- **P1 (Capability ID Format):** All four capability ids (`18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7`,
+  `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3`, `3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd`,
+  `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2`) match `^[0-9a-f]{64}$` and equal SHA-256 of their `<group-slug>|<action-slug>|<resource-slug>` preimage.
 - **P3 (Lint Output Consistency):** The `govops lint` passing output references only
   the four capability ids present in the catalog excerpt above; the failing output
-  references only `payments|settle|payment-order`, which appears in the broken entry
+  references only `00c467f0c7ba1fb43ec62a7b4c7d49ad0cca67fb93eba91114acc2fd1217647e`, which appears in the broken entry
   shown in the same step.
 - **P4 (Section Structure):** This section contains all seven required subsections.
 
@@ -420,14 +422,14 @@ target-reference:
   entry-type: Control
 mappings:
   - id: m.transfer.ac3
-    source: payments|transfer|bank-account
+    source: 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
     relationship: implements
     targets:
       - entry-id: AC-3
         rationale: Critical transfer capability; MFA in documented-context-expectations.
       - entry-id: IA-2(1)
   - id: m.lending.ac5
-    source: lending|approve|loan
+    source: 3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd
     relationship: implements
     targets:
       - entry-id: AC-5
@@ -436,16 +438,16 @@ mappings:
 
 **Step 2 — Query: high-risk capabilities without AC-3 mapping.**
 
-Manual review or catalog query: `fraud|flag|transaction` (`risk-tier: high`) has no mapping to AC-3 while `payments|transfer|bank-account` and `lending|approve|loan` do. The **Lending Officer** adds an AC-3 mapping for `fraud|flag|transaction` (e.g., to AU-6 automated monitoring) or documents risk acceptance before audit close.
+Manual review or catalog query: `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` (`risk-tier: high`) has no mapping to AC-3 while `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3` and `3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd` do. The **Lending Officer** adds an AC-3 mapping for `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` (e.g., to AU-6 automated monitoring) or documents risk acceptance before audit close.
 
 **Step 3 — Evidence trace for a capability.**
 
-For NIST AC-3 on `payments|transfer|bank-account`:
+For NIST AC-3 on `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3`:
 
 ```
 NIST AC-3
   → MappingDocument m.transfer.ac3
-  → Capability payments|transfer|bank-account
+  → Capability 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
   → risk-tier: critical, documented-context-expectations (context.acr == urn:mfa)
   → (optional) policies/payments-cedar.cedar verified by govops drift (UC-04)
 ```
@@ -460,7 +462,7 @@ The auditor relies on **catalog fields** and mapping rationale; separate pillar 
 
 ### Correctness Properties Demonstrated
 
-- **P1:** All capability ids in mappings match the `<group>|<action>|<resource>` format.
+- **P1:** All capability ids in mappings are valid SHA-256 capability ids per design §6.2(A).
 - **P4:** All required subsections present.
 
 ### Cross-References
@@ -519,10 +521,10 @@ Written: govops/exports/acme-capabilities-2026-05-14.csv
 ```csv
 # govops/exports/acme-capabilities-2026-05-14.csv
 capability_id,title,group,action,resource,risk_tier,data_sensitivity,lifecycle_stage
-payments|read|invoice,Read invoice,payments,read,Invoice,medium,pii,runtime
-payments|transfer|bank-account,Transfer funds,payments,transfer,BankAccount,critical,confidential,runtime
-lending|approve|loan,Approve loan,lending,approve,Loan,critical,confidential,runtime
-fraud|flag|transaction,Flag transaction,fraud,flag,Transaction,high,internal,runtime
+18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7,Read invoice,payments,read,invoice,medium,pii,runtime
+0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3,Transfer funds,payments,transfer,bank-account,critical,confidential,runtime
+3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd,Approve loan,lending,approve,loan,critical,confidential,runtime
+ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2,Flag transaction,fraud,flag,transaction,high,internal,runtime
 ```
 
 The IGA platform ingests this CSV and creates entitlement records keyed by
@@ -552,12 +554,12 @@ Written: govops/exports/acme-high-risk-review-2026-Q2.csv
 
 ```csv
 capability_id,title,risk_tier,data_sensitivity
-payments|read|invoice,Read invoice,medium,pii
-payments|transfer|bank-account,Transfer funds,critical,confidential
-lending|approve|loan,Approve loan,critical,confidential
+18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7,Read invoice,medium,pii
+0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3,Transfer funds,critical,confidential
+3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd,Approve loan,critical,confidential
 ```
 
-The filter matches three capabilities: `payments|read|invoice` (pii), `payments|transfer|bank-account` (critical + confidential), and `lending|approve|loan` (critical + confidential). `fraud|flag|transaction` is high risk but internal sensitivity only, so it is excluded from this particular campaign.
+The filter matches three capabilities: `18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7` (pii), `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3` (critical + confidential), and `3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd` (critical + confidential). `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` is high risk but internal sensitivity only, so it is excluded from this particular campaign.
 
 The IGA platform uses this scoped export to launch the Q2 access review campaign,
 targeting only the capabilities that meet the risk threshold.
@@ -570,7 +572,7 @@ permission string:
 
 ```
 Recertification Request — Q2 2026
-Capability: payments|transfer|bank-account
+Capability: 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
 Title: Transfer funds
 Risk tier: critical
 Data sensitivity: confidential
@@ -579,8 +581,8 @@ Certifier: payments-team-lead@acme.com
 Action required: Certify or revoke by 2026-06-30
 ```
 
-The canonical id `payments|transfer|bank-account` is stable across policy engine
-changes — if Acme migrates from Cedar to OPA, the capability id does not change, and
+The canonical id `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3` is stable across policy engine
+changes (it is derived only from group, action, and resource slugs) — if Acme migrates from Cedar to OPA, the capability id does not change, and
 the IGA recertification history remains intact.
 
 **Step 4 — Use `govops drift` to detect policy-present/catalog-absent capabilities.**
@@ -607,7 +609,7 @@ Cedar engine (govops/policies/payments-cedar.cedar):
     ⚠ action: "batch-transfer", resource: "BankAccount"
         Found in Cedar policy rule: permit(action == "batch-transfer", resource.type == "BankAccount")
         No corresponding capability in GovOps-AC.yaml
-        Suggested id: payments|batch-transfer|bank-account
+        Suggested id: d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2
         Recommendation: Add to catalog or remove from policy.
 
 Fraud engine (govops/policies/fraud-detection-opa.rego):
@@ -616,44 +618,44 @@ Fraud engine (govops/policies/fraud-detection-opa.rego):
 Summary: 1 drift finding (Type B). 0 Type A. 0 Type C.
 ```
 
-The IGA Team escalates the `payments|batch-transfer|bank-account` finding to the
+The IGA Team escalates the `d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2` finding to the
 Platform Security Engineer. The engineer determines this is a legitimate capability
 that was added to the Cedar policy without going through the catalog authoring process
-(UC-01 complete). Resolution: add `payments|batch-transfer|bank-account` to `GovOps-AC.yaml`
+(UC-01 complete). Resolution: add `d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2` to `GovOps-AC.yaml`
 and run `govops lint` to validate.
 
 **Step 5 — Capability deprecation and IGA catalog update.**
 
-The payments team decides to deprecate `payments|read|invoice` and replace it with
-`payments|read|invoice-summary` (a narrower capability that returns only invoice
+The payments team decides to deprecate `18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7` and replace it with
+`6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb` (a narrower capability that returns only invoice
 headers, not line items, reducing PII exposure). The Platform Security Engineer
 updates `GovOps-AC.yaml`:
 
 ```yaml
   # Deprecated entry
-  - id: payments|read|invoice
+  - id: 18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7
     title: Read invoice (deprecated)
     group: g.payments
     action: read
-    resource: Invoice
+    resource: invoice
     state: Deprecated
-    replaced-by: payments|read|invoice-summary
+    replaced-by: 6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb
     data-sensitivity: pii
     risk-tier: medium
 
   # New entry
-  - id: payments|read|invoice-summary
+  - id: 6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb
     title: Read invoice summary
     group: g.payments
     action: read
-    resource: InvoiceSummary
+    resource: invoice-summary
     documented-requester-classes: [interactive-subject, software-agent]
     data-sensitivity: internal
     risk-tier: low
     lifecycle-stage: runtime
     description: >
       Retrieve invoice header fields only (no line items). Reduced PII exposure
-      compared to payments|read|invoice.
+      compared to 18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7.
 ```
 
 The IGA Exporter detects the deprecation and generates a notification:
@@ -668,14 +670,14 @@ $ govops iga-export \
 govops iga-export v0.9.0
 
 Capability changes detected since 2026-05-14:
-  DEPRECATED: payments|read|invoice → replaced by payments|read|invoice-summary
-  ADDED:      payments|read|invoice-summary (risk-tier: low, sensitivity: internal)
-  ADDED:      payments|batch-transfer|bank-account (risk-tier: critical, sensitivity: confidential)
+  DEPRECATED: 18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7 → replaced by 6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb
+  ADDED:      6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb (risk-tier: low, sensitivity: internal)
+  ADDED:      d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2 (risk-tier: critical, sensitivity: confidential)
 
 IGA ACTION REQUIRED:
-  1. Update IGA entitlement records: retire payments|read|invoice, create payments|read|invoice-summary
-  2. Migrate active access grants from payments|read|invoice to payments|read|invoice-summary
-  3. Re-scope Q2 access review to include payments|batch-transfer|bank-account (risk-tier: critical)
+  1. Update IGA entitlement records: retire 18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7, create 6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb
+  2. Migrate active access grants from 18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7 to 6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb
+  3. Re-scope Q2 access review to include d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2 (risk-tier: critical)
 ```
 
 The IGA Team processes the notification, updates the IGA platform's entitlement
@@ -692,10 +694,10 @@ catalog, and migrates active grants before the deprecation deadline.
 ### Correctness Properties Demonstrated
 
 - **P1 (Capability ID Format):** All capability ids in the CSV exports and drift output
-  match the `<group>|<action>|<resource>` format, including the newly suggested
-  `payments|batch-transfer|bank-account`.
+  are valid SHA-256 capability ids, including the newly suggested
+  `d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2`.
 - **P3 (Lint and Drift Output Consistency):** The `govops drift` output references only
-  `payments|batch-transfer|bank-account` as a Type B finding — a capability present in
+  `d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2` as a Type B finding — a capability present in
   the Cedar policy but absent from the catalog excerpt shown in UC-01.
 
 ### Cross-References
@@ -727,7 +729,7 @@ ungoverned policy changes from reaching production.
 
 ### Preconditions
 
-- UC-03 complete: catalog includes `payments|read|invoice-summary`, `payments|batch-transfer|bank-account`, and deprecated `payments|read|invoice`.
+- UC-03 complete: catalog includes `6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb`, `d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2`, and deprecated `18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7`.
 - `govops/GovOps-AC.yaml` passes `govops lint`.
 - Deployed policy artifacts exist:
   - `govops/policies/payments-cedar.cedar` (Cedar, payments service)
@@ -751,13 +753,13 @@ Drift Report — Acme Bank (2026-05-28)
 
 Cedar engine (govops/policies/payments-cedar.cedar):
   [Type A] Catalog entry with no policy rule:
-    ⚠ payments|read|invoice-summary
+    ⚠ 6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb
         Capability in GovOps-AC.yaml (state: Active)
         No Cedar policy rule found for action="read", resource.type="InvoiceSummary"
         Recommendation: Add policy rule or mark capability as design-time only.
 
   [Type C] Context-expectations diverge from deployed policy:
-    ⚠ payments|transfer|bank-account
+    ⚠ 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
         documented-context-expectations: context.acr == 'urn:mfa'
         Cedar policy rule: permits transfer for service accounts with context.service-account == true
           WITHOUT requiring context.acr == 'urn:mfa'
@@ -769,7 +771,7 @@ OPA engine (govops/policies/fraud-detection-opa.rego):
     ⚠ action: "escalate", resource: "Transaction"
         Found in OPA rule: allow { input.action == "escalate"; input.resource.type == "Transaction" }
         No corresponding capability in GovOps-AC.yaml
-        Suggested id: fraud|escalate|transaction
+        Suggested id: 71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835
         Recommendation: Add to catalog or remove from policy.
 
   No Type A or Type C findings for OPA engine.
@@ -783,7 +785,7 @@ Unified Drift Summary:
 
 **Step 2 — Resolve the three drift scenarios.**
 
-**Scenario (a) — Type A: `payments|read|invoice-summary` in catalog, no Cedar rule.**
+**Scenario (a) — Type A: `6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb` in catalog, no Cedar rule.**
 
 The capability was added to the catalog (UC-03 Step 5) but the Cedar policy has not
 yet been updated to enforce it. The engineer has three options:
@@ -794,21 +796,21 @@ yet been updated to enforce it. The engineer has three options:
 | Update catalog | Mark capability `lifecycle-stage: design-time` | Capability is planned but not yet deployed |
 | Accept exception | Document in `govops/exceptions/drift-exceptions.yaml` | Intentional gap with documented rationale |
 
-Decision: the payments team confirms `payments|read|invoice-summary` is live. The
+Decision: the payments team confirms `6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb` is live. The
 Policy Engine Operator adds the Cedar rule. After the policy update, re-running
 `govops drift` shows no Type A finding for this capability.
 
-**Scenario (b) — Type B: `fraud|escalate|transaction` in OPA policy, not in catalog.**
+**Scenario (b) — Type B: `71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835` in OPA policy, not in catalog.**
 
 The fraud team added an escalation capability to the OPA policy without going through
-the catalog authoring process. The engineer adds `fraud|escalate|transaction` to `GovOps-AC.yaml`:
+the catalog authoring process. The engineer adds `71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835` to `GovOps-AC.yaml`:
 
 ```yaml
-  - id: fraud|escalate|transaction
+  - id: 71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835
     title: Escalate transaction
     group: g.fraud
     action: escalate
-    resource: Transaction
+    resource: transaction
     documented-requester-classes: [interactive-subject, software-agent]
     engine-bindings:
       - engine: opa
@@ -825,7 +827,7 @@ After adding the entry, the engineer runs `govops lint` to confirm `action.escal
 After adding the entry and running `govops lint` to validate, re-running `govops drift`
 shows no Type B finding for this capability.
 
-**Scenario (c) — Type C: `payments|transfer|bank-account` context-expectations diverge.**
+**Scenario (c) — Type C: `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3` context-expectations diverge.**
 
 The Cedar policy has a service-account bypass that permits transfers without MFA. The drift report confirms the divergence: `documented-context-expectations` require MFA, but deployed policy does not enforce it for service accounts.
 
@@ -843,7 +845,7 @@ Step 3: govops drift
   ✗ DRIFT DETECTED — build failed
 
   [Type C] Context-expectations diverge:
-    payments|transfer|bank-account
+    0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
     documented-context-expectations: context.acr == 'urn:mfa'
     Proposed Cedar policy: permits transfer for service accounts without context.acr == 'urn:mfa'
 
@@ -873,16 +875,16 @@ remediation workflows.
 
 | Artifact | Gemara type | Path | Notes |
 |---|---|---|---|
-| Updated capability catalog | `#CapabilityCatalog` | `govops/GovOps-AC.yaml` | Modified: added `fraud|escalate|transaction` |
+| Updated capability catalog | `#CapabilityCatalog` | `govops/GovOps-AC.yaml` | Modified: added `71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835` |
 | Drift exception log | Convention | `govops/exceptions/drift-exceptions.yaml` | Created if exceptions are accepted |
 
 ### Correctness Properties Demonstrated
 
-- **P1 (Capability ID Format):** All capability ids in the drift report (`payments|read|invoice-summary`,
-  `payments|transfer|bank-account`, `fraud|escalate|transaction`) match the `<group>|<action>|<resource>` format.
-  The suggested id `fraud|escalate|transaction` also matches.
+- **P1 (Capability ID Format):** All capability ids in the drift report (`6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb`,
+  `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3`, `71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835`) match `^[0-9a-f]{64}$`.
+  The suggested id `71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835` also matches.
 - **P4 (PARC Context Predicate Consistency):** The Type C drift finding for
-  `payments|transfer|bank-account` correctly identifies the divergence between the
+  `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3` correctly identifies the divergence between the
   capability's `documented-context-expectations` (`context.acr == 'urn:mfa'`) and the
   deployed Cedar policy (which permits without MFA for service accounts). This is
   consistent with the capability excerpt shown in UC-01.
@@ -900,7 +902,7 @@ remediation workflows.
 | OPA/Rego PDP class | Design §8.1 |
 | Type C drift and context expectations | Design §7.1 |
 | CI/CD integration | Design §11 (Phase 4) |
-| Type C drift and context expectations | UC-01 `payments|transfer|bank-account` |
+| Type C drift and context expectations | UC-01 `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3` |
 
 
 ## UC-05: Continuous Governance in CI/CD
@@ -944,11 +946,11 @@ gates:
 
 **Step 2 — Policy pull request fails on drift.**
 
-A Cedar change introduces a service-account bypass on `payments|transfer|bank-account` without updating documented-context-expectations:
+A Cedar change introduces a service-account bypass on `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3` without updating documented-context-expectations:
 
 ```
 Step: govops drift
-  ✗ Type C: payments|transfer|bank-account — context.acr == urn:mfa not enforced for service accounts
+  ✗ Type C: 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3 — context.acr == urn:mfa not enforced for service accounts
   EXIT 1 — merge blocked
 ```
 
@@ -980,7 +982,7 @@ Engineer removes bypass, re-runs pipeline: lint PASS, drift PASS. `GovOps-AC.yam
 
 ### Context
 
-Not every **PARC Principal** is a human. Acme's **Fraud System** is an automated fraud-detection service that evaluates payment transactions and requests **`fraud|flag|transaction`** when model scores exceed a threshold. The capability catalog must describe this **(action, resource)** pair and document that **software agents** are expected requesters — so policy, drift checks, and audits refer to the same capability id whether a human analyst or the Fraud System invokes the PDP.
+Not every **PARC Principal** is a human. Acme's **Fraud System** is an automated fraud-detection service that evaluates payment transactions and requests **`ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2`** when model scores exceed a threshold. The capability catalog must describe this **(action, resource)** pair and document that **software agents** are expected requesters — so policy, drift checks, and audits refer to the same capability id whether a human analyst or the Fraud System invokes the PDP.
 
 ### Actors
 
@@ -990,7 +992,7 @@ Not every **PARC Principal** is a human. Acme's **Fraud System** is an automated
 
 ### Preconditions
 
-- UC-01 complete: `fraud|flag|transaction` is defined in `GovOps-AC.yaml` with `documented-requester-classes` including `software-agent`.
+- UC-01 complete: `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` is defined in `GovOps-AC.yaml` with `documented-requester-classes` including `software-agent`.
 - `govops/policies/fraud-detection-opa.rego` is deployed and referenced by the capability's `engine-bindings`.
 - The Fraud System holds a workload identity (e.g., SPIFFE ID or service account) recognized by the PDP.
 
@@ -1001,7 +1003,7 @@ Not every **PARC Principal** is a human. Acme's **Fraud System** is an automated
 From `GovOps-AC.yaml` (see UC-01):
 
 ```yaml
-  - id: fraud|flag|transaction
+  - id: ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2
     documented-requester-classes: [software-agent, interactive-subject]
     documented-context-expectations:
       - id: c.risk-score
@@ -1036,7 +1038,7 @@ When the payments pipeline emits a high-risk transaction event, the Fraud System
 }
 ```
 
-The **Action** and **Resource** type align with `fraud|flag|transaction` in `GovOps-AC`. The **Principal** is explicitly non-human. **Context** carries the model score the policy expects.
+The **Action** and **Resource** type align with `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` in `GovOps-AC`. The **Principal** is explicitly non-human. **Context** carries the model score the policy expects.
 
 **Step 3 — PDP decision and alignment with catalog.**
 
@@ -1052,7 +1054,7 @@ $ govops drift \
 govops drift v0.9.0
 
 OPA engine (fraud-detection-opa.rego):
-  No drift for fraud|flag|transaction — policy permits flag on Transaction for
+  No drift for ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2 — policy permits flag on Transaction for
   software-agent principals when context.fraud.risk-score >= 0.85.
 ```
 
@@ -1060,18 +1062,18 @@ If drift Type C appears (catalog expects risk score but policy omits it), the Pl
 
 **Step 5 — Contrast with human-initiated flag on the same capability.**
 
-A human analyst flagging the same transaction uses the identical capability id and PARC shape, but **Principal** is `interactive-subject` and **Context** may include analyst id and case reference instead of batch model metadata. Governance and compliance trace both flows to **`fraud|flag|transaction`**, not to separate permission strings.
+A human analyst flagging the same transaction uses the identical capability id and PARC shape, but **Principal** is `interactive-subject` and **Context** may include analyst id and case reference instead of batch model metadata. Governance and compliance trace both flows to **`ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2`**, not to separate permission strings.
 
 ### Artifacts Produced or Modified
 
 | Artifact | Gemara type | Path | Notes |
 |---|---|---|---|
-| Capability catalog | `#CapabilityCatalog` | `govops/GovOps-AC.yaml` | `fraud|flag|transaction` documents software-agent requesters |
+| Capability catalog | `#CapabilityCatalog` | `govops/GovOps-AC.yaml` | `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` documents software-agent requesters |
 | Deployed policy | OPA/Rego | `govops/policies/fraud-detection-opa.rego` | Evaluates Fraud System PARC requests |
 
 ### Correctness Properties Demonstrated
 
-- **P1:** `fraud|flag|transaction` matches the `<group>|<action>|<resource>` capability id format.
+- **P1:** `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` is a valid SHA-256 capability id per design §6.2(A).
 - **P2:** PARC **Context** (`context.fraud.risk-score >= 0.85`) is consistent with `documented-context-expectations` on the capability excerpt in this section.
 - **P4:** All required subsections present.
 
@@ -1081,7 +1083,7 @@ A human analyst flagging the same transaction uses the identical capability id a
 |---|---|
 | `documented-requester-classes` | Design §6.2(B) |
 | PARC request shape | Design §2.2, §3 |
-| `fraud|flag|transaction` | Design §8.1 |
+| `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` | Design §8.1 |
 | `govops drift` | Design §10 |
 | Non-human principals | Design §3 (Principal vs. capability) |
 

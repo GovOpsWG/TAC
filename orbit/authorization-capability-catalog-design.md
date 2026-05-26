@@ -56,6 +56,7 @@ In short, Gemara already has the right *shape*; what is missing is a profile tha
 | **Resource** | The noun half of a capability: the resource **type** the action applies to (e.g., `Invoice`, `BankAccount`, `Repository`, `PolicyDocument`). The catalog records the *type*; runtime requests identify specific instances. |
 | **Context** | Other facts provided to a **PARC request** |
 | **PARC** | Principal, Action, Resource, Context — the  **authorization request** shape. Used at the PDP boundary; **not** synonymous with "capability." |
+| **Capability id** | Opaque lowercase hexadecimal SHA-256 digest of `<group-slug>|<action-slug>|<resource-slug>` (see §6.2). Does not embed group, action, or resource strings in the catalog id field. |
 | **Authorization capability** | A Gemara catalog entry whose **identity** is an **(action, resource)** pair (plus `id`, `title`, `description`, `group` per `#Capability`). Optional fields may document risk, sensitivity, or **expected** policy preconditions; those extensions do not redefine the capability. |
 | **Documented context expectation** | Optional metadata on a capability describing **PARC Context** the organization expects policy to enforce (e.g., MFA, approval counts). Used by `govops drift` and compliance mapping; not part of capability identity. |
 
@@ -140,18 +141,19 @@ Two equivalent encodings are offered. Authors MAY pick (A) for a zero-schema-cha
 
 Use the existing `#Capability` fields and encode the structured payload in `id` and `description`:
 
-- `id` MUST follow the form `<group>|<action>|<resource>` (e.g., `payments|transfer|bank-account`). Segments are lowercase slugs. The `<group>` id segment provides one level of organizational scoping to help avoid collissions. 
+- `id` MUST be the lowercase hexadecimal SHA-256 digest of the UTF-8 string `<group-slug>|<action-slug>|<resource-slug>` (e.g., `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3`). Slugs are lowercase identifiers. **Group slug** is derived from the entry's `#Group` `id` by removing an optional `g.` prefix (`g.payments` → `payments`).
 - `title` is the human label.
-- `description` MUST contain a YAML front-matter block. **Only `action` and `resource` are required** — they are the **capability identity**. Any other keys are optional **catalog documentation** (risk tier, sensitivity, expected context for policy reviewers, typical caller classes in requests, etc.) and **do not** redefine the capability.
+- `description` MUST contain a YAML front-matter block with **`group`**, **`action`**, and **`resource`** slugs (the preimage of `id`). The **(action, resource)** pair is the **capability identity** for PARC and policy; `group` scopes the id. Any other front-matter keys are optional **catalog documentation** and **do not** redefine the capability.
 
 ```yaml
-- id: payments|transfer|bank-account
+- id: 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
   title: Transfer funds from bank account
   group: g.payments
   description: |
     ---
-    action: Transfer
-    resource: BankAccount
+    group: payments
+    action: transfer
+    resource: bank-account
     documentation:
       typical-requester-classes: [interactive-subject, software-agent]
       expected-context:
@@ -182,6 +184,7 @@ package gemara
 #AuthorizationCapability: {
     #Capability
 
+    // id MUST be SHA-256 hex of <group-slug>|<action-slug>|<resource-slug> (§6.2).
     // action + resource together ARE the capability identity.
     action:   string
     resource: string
@@ -250,7 +253,7 @@ The **normative** fields that define what is being governed are **`action` and `
 `#Group` (post ADR-0020) is the single grouping primitive — a way to **group** related (action, resource) pairs in the catalog:
 
 - `groups`: one entry per logical group (e.g., `payments`, `iam`, `governance`, `release-engineering`).
-- Each capability `id` begins with the **group slug** (e.g., `payments` in `payments|transfer|bank-account`); the entry's `group` field references the Gemara group `id` (e.g., `g.payments`).
+- Capability `id` values are opaque SHA-256 digests; the entry's `group` field references the Gemara group `id` (e.g., `g.payments`), and **group slug** for hashing is derived from that reference.
 - Each `#AuthorizationCapability.group` references a group `id`.
 
 Use `metadata.applicability-groups` for orthogonal classifications that drive metrics:
@@ -260,7 +263,7 @@ Use `metadata.applicability-groups` for orthogonal classifications that drive me
 - **Lifecycle stage** — `design-time`, `build-time`, `deploy-time`, `runtime`.
 - **Invocation profile** — `interactive-subject`, `software-only`, `mixed` (optional catalog metadata describing how the capability is usually invoked; does not change the (action, resource) identity).
 
-These groups become the dimensions for GovOps metrics: *"What high-impact capabilities exist? Which are weakly governed?"* (GovOps Objective #5).
+These groups become the dimensions for GovOps metrics: *"What high-impact capabilities exist? Which are weakly governed?"*.
 
 ### 6.4 Anchoring vocabulary with `#Lexicon`
 
@@ -292,7 +295,7 @@ Gemara already defines `#Resource` (in `entities.cue`) as a runtime entity that 
 
 The two stay separate:
 
-- `#AuthorizationCapability.resource` is the **resource type** half of the capability (e.g., `BankAccount`).
+- `#AuthorizationCapability.resource` is the **resource slug** half of the capability (e.g., `bank-account`), aligned with the lexicon term used in the capability id preimage.
 - `#Resource` (entities) is a **runtime instance** being evaluated (e.g., the production payments service running v1.4.2).
 
 A measurement record carries both: the `target` of an evaluation log is a `#Resource`; what was *evaluated about it* is the conformance of its policies to a set of `#AuthorizationCapability` entries (each keyed by **action + resource**).
@@ -310,7 +313,7 @@ threats:
     capabilities:
       - reference-id: ec
         entries:
-          - reference-id: payments|transfer|bank-account
+          - reference-id: 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
 ```
 
 Layer-3 `#Risk` entries and `#Policy` documents reference threats and controls in turn, so a single line of an authorization capability flows through the entire seven-layer model.
@@ -319,15 +322,11 @@ Layer-3 `#Risk` entries and `#Policy` documents reference threats and controls i
 
 ## 7. Optional Gemara layering and context expectations
 
-The **Authorization Capability Catalog** (`GovOps-AC`) is the Phase 1 core. Organizations MAY also maintain standard Gemara `#ControlCatalog`, `#ThreatCatalog`, `#Risk`, and `#Policy` artifacts that reference capability ids (see §6.7). That full layered model is valuable but **not required** for ACC conformance and is **not** split into a separate pillar or scoring silo.
+The **Authorization Capability Catalog** (`GovOps-ACC`) is the Phase 1 core. Organizations MAY also maintain standard Gemara `#ControlCatalog`, `#ThreatCatalog`, `#Risk`, and `#Policy` artifacts that reference capability ids (see §6.7). That full layered model is valuable but **not required** for ACC conformance and is **not** split into a separate pillar or scoring silo.
 
 ### 7.1 Documented context expectations
 
-High-risk capabilities SHOULD record **documented-context-expectations** on the catalog entry — human-readable (and optionally machine-readable) statements about **PARC Context** the organization expects published policy to enforce (e.g., `context.acr == 'urn:mfa'`, minimum approver count). These expectations are **not** part of capability identity; they document governance intent and feed **`govops drift`** Type-C checks (catalog expectation vs. a supplied policy release).
-
-### 7.2 Optional: provable claims (future phase)
-
-Where an organization wants stronger assurance than drift alone, a future GovOps phase MAY attach symbolic proofs to context expectations (UNSAT over a published policy release). That work reuses Gemara `#EvaluationLog` and optional `proofs/` artifacts; it is out of scope for the minimal ACC repository layout in §5.
+High-risk capabilities SHOULD record **documented-context-expectations** on the catalog entry — human-readable (and optionally machine-readable) statements about **PARC Context** the organization expects published policy to enforce (e.g., `context.amr has_value 'urn:mfa'`, minimum approver count). These expectations are **not** part of capability identity; they document governance intent and feed **`govops drift`** Type-C checks (catalog expectation vs. a supplied policy release).
 
 ---
 
@@ -370,23 +369,23 @@ groups:
     title: Fraud
     description: Capabilities exposed by the fraud detection service.
 capabilities:
-  - id: payments|read|invoice
+  - id: 18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7
     title: Read invoice
     description: Retrieve an existing Invoice by id.
     group: g.payments
     action: read
-    resource: Invoice
+    resource: invoice
     documentation:
       typical-requester-classes: [interactive-subject, software-agent, autonomous-actor]
     data-sensitivity: pii
     risk-tier: medium
 
-  - id: payments|transfer|bank-account
+  - id: 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
     title: Transfer funds
     description: Initiate a funds transfer between bank accounts.
     group: g.payments
     action: transfer
-    resource: BankAccount
+    resource: bank-account
     documentation:
       typical-requester-classes: [interactive-subject, software-agent]
       expected-context:
@@ -397,12 +396,12 @@ capabilities:
     data-sensitivity: confidential
     risk-tier: critical
 
-  - id: lending|approve|loan
+  - id: 3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd
     title: Approve loan
     description: Approve a loan application or facility change.
     group: g.lending
     action: approve
-    resource: Loan
+    resource: loan
     documentation:
       typical-requester-classes: [interactive-subject]
       expected-context:
@@ -413,12 +412,12 @@ capabilities:
     data-sensitivity: confidential
     risk-tier: critical
 
-  - id: fraud|flag|transaction
+  - id: ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2
     title: Flag transaction
     description: Flag a payment transaction for fraud review.
     group: g.fraud
     action: flag
-    resource: Transaction
+    resource: transaction
     documentation:
       typical-requester-classes: [interactive-subject, software-agent]
     data-sensitivity: internal
@@ -446,7 +445,7 @@ target-reference:
   entry-type: Control
 mappings:
   - id: m.transfer.ac3
-    source: payments|transfer|bank-account
+    source: 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
     relationship: implements
     targets:
       - entry-id: AC-3
@@ -469,7 +468,7 @@ govops drift \
   --engine cedar
 ```
 
-A Type-C finding on `payments|transfer|bank-account` means the supplied policy release does not match the catalog's `context.acr == 'urn:mfa'` expectation — the gap is expressed in **capability id** terms, not a separate metrics framework.
+A Type-C finding on `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3` means the supplied policy release does not match the catalog's `context.acr == 'urn:mfa'` expectation — the gap is expressed in **capability id** terms, not a separate metrics framework.
 
 ---
 
@@ -483,7 +482,7 @@ Use Gemara's `#MappingDocument` with `source-reference` pointing at the **`#Capa
 
 Phase 1 reference tooling (no Gemara schema changes beyond the optional EC profile):
 
-1. **`govops lint`** — Lexicon resolution, group membership, applicability-group value checks, engine-binding well-formedness.
+1. **`govops lint`** — Capability `id` matches SHA-256 of `<group-slug>|<action-slug>|<resource-slug>`, lexicon resolution, group membership, applicability-group value checks, engine-binding well-formedness.
 2. **`govops drift`** — Compare catalog **(action, resource)** entries to **published policy releases** per engine (artifacts passed in at run time by path, URI, or digest); report Type A (catalog without policy), Type B (policy without catalog), Type C (context-expectation mismatch).
 3. **IGA exporter** — Emit CSV / SCIM / OSCAL from `GovOps-AC` for entitlement catalogs and access reviews.
 
