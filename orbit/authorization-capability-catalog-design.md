@@ -13,8 +13,9 @@ This document proposes a design for representing **authorization capabilities** 
 Three ideas combine to form the design:
 
 1. **Capabilities are action–resource pairs**;  At evaluation time, a PDP receives a **PARC-shaped request**. Engine neutrality comes from the fact that every PDP class can consume PARC-shaped requests while the catalog stays a domain-centric inventory of discrete **(action, resource)** entries.
-2. **A GovOps repository centered on `GovOps-AC`.** A single `#CapabilityCatalog` inventories the enterprise's authorization surface; a `#Lexicon` defines canonical terms; and `#MappingDocument` files link capabilities to compliance frameworks. Governance metadata (risk-tier, sensitivity, documented context expectations) lives **on the capability entries**, not in a parallel pillar or scoring framework. **Policy binaries are not stored in this repository** — they are authored and published separately as versioned artifacts and distributed using software supply-chain trust models (signing, provenance, registries).
-3. **Catalog–policy alignment.** `govops lint` validates the catalog; `govops drift` compares the catalog to **published policy releases** (supplied at run time by URI, digest, or local path) so the authorization surface stays enumerable and aligned with enforcement.
+2. **A GovOps repository centered on `GovOps-ACC`.** A single `#CapabilityCatalog` inventories the enterprise's authorization surface; a `#Lexicon` defines canonical terms; and `#MappingDocument` files link capabilities to compliance frameworks. Governance metadata (risk-tier, sensitivity, documented context expectations) lives **on the capability entries**, not in a parallel pillar or scoring framework. 
+3. **Policy binaries are not stored in this repository** — they are authored and published separately as versioned artifacts and distributed using software supply-chain trust models (signing, provenance, registries).
+4. **Catalog–policy alignment.** `govops lint` validates the catalog; `govops drift` compares the catalog to **published policy releases** (supplied at run time by URI, digest, or local path) so the authorization surface stays enumerable and aligned with enforcement.
 
 Gemara already provides 90% of the substrate: a stable `#CapabilityCatalog` (ADR-0019), `#ControlCatalog` and `#AssessmentRequirement`, mapping primitives that include `Capability` as an `EntryType`, `#Lexicon`, `#EvaluationLog`, `#EnforcementLog`, and `#AuditLog`. The remaining 10% is a small, additive **Authorization Capability Profile** of `#Capability` and a set of conventions for arranging the artifacts.
 
@@ -86,11 +87,11 @@ A GovOps repository is a directory of **Gemara artifacts** that describe the ent
 
 ```text
 govops/
-  lexicon.yaml                       # #Lexicon
-  metadata.yaml                      # shared metadata fragments (optional)
-  GovOps-ACC.yaml                     # #CapabilityCatalog (Authorization Capability Profile)
-  mappings/                          # #MappingDocument files (NIST, ISO, SOC 2, OSPS, ...)
-  exports/                           # IGA exporter output (CSV, etc.; optional)
+  lexicon.yaml                      # Lexicon
+  metadata.yaml                     # Shared metadata fragments (optional)
+  GovOps-ACC.yaml                   # #CapabilityCatalog (Authorization Capability Profile)
+  mappings/                         # #MappingDocument files (NIST, ISO, SOC 2, OSPS, ...)
+  exports/                          # e.g. IGA exporter output (optional)
 ```
 
 Mapping each top-level item to a Gemara artifact type:
@@ -117,10 +118,10 @@ A `#CapabilityCatalog` is **not** layered. It is **domain content** that crosses
 
 ```text
 Layer 1   Vectors, Guidance
-Layer 2   Threats, Controls          <-- optional Gemara catalogs (not required for ACC)
+Layer 2   Threats, Controls
 Layer 3   Risks, Policies
 Layer 4   Sensitive activities (e.g., grant access, deploy policy)
-Layer 5   Evaluation logs            <-- per-claim proof results
+Layer 5   Evaluation logs
 Layer 6   Enforcement logs
 Layer 7   Audit logs
 
@@ -139,13 +140,13 @@ Two equivalent encodings are offered. Authors MAY pick (A) for a zero-schema-cha
 
 Use the existing `#Capability` fields and encode the structured payload in `id` and `description`:
 
-- `id` MUST follow the form `<service>:<action>:<resource>` (e.g., `payments:transfer:bank-account`).
+- `id` MUST follow the form `<group>|<action>|<resource>` (e.g., `payments|transfer|bank-account`). Segments are lowercase slugs. The `<group>` id segment provides one level of organizational scoping to help avoid collissions. 
 - `title` is the human label.
 - `description` MUST contain a YAML front-matter block. **Only `action` and `resource` are required** — they are the **capability identity**. Any other keys are optional **catalog documentation** (risk tier, sensitivity, expected context for policy reviewers, typical caller classes in requests, etc.) and **do not** redefine the capability.
 
 ```yaml
-- id: payments:transfer:bank-account
-  title: Transfer funds
+- id: payments|transfer|bank-account
+  title: Transfer funds from bank account
   group: g.payments
   description: |
     ---
@@ -156,7 +157,7 @@ Use the existing `#Capability` fields and encode the structured payload in `id` 
       expected-context:
         - id: c.mfa
           text: "Policy MUST require strong authentication evidence in context"
-          expression: "context.acr == 'urn:mfa'"
+          expression: "context.entra_id_token.amr has value 'mfa'"
           expression-language: natural-language
     data-sensitivity: confidential
     risk-tier: critical
@@ -246,9 +247,10 @@ The **normative** fields that define what is being governed are **`action` and `
 
 ### 6.3 Catalog organization with `#Group`
 
-`#Group` (post ADR-0020) is the single grouping primitive. Use it for **service** or **domain**:
+`#Group` (post ADR-0020) is the single grouping primitive — a way to **group** related (action, resource) pairs in the catalog:
 
-- `groups`: one entry per service or business domain (e.g., `payments`, `iam`, `governance`, `release-engineering`).
+- `groups`: one entry per logical group (e.g., `payments`, `iam`, `governance`, `release-engineering`).
+- Each capability `id` begins with the **group slug** (e.g., `payments` in `payments|transfer|bank-account`); the entry's `group` field references the Gemara group `id` (e.g., `g.payments`).
 - Each `#AuthorizationCapability.group` references a group `id`.
 
 Use `metadata.applicability-groups` for orthogonal classifications that drive metrics:
@@ -308,7 +310,7 @@ threats:
     capabilities:
       - reference-id: ec
         entries:
-          - reference-id: payments:transfer:bank-account
+          - reference-id: payments|transfer|bank-account
 ```
 
 Layer-3 `#Risk` entries and `#Policy` documents reference threats and controls in turn, so a single line of an authorization capability flows through the entire seven-layer model.
@@ -368,7 +370,7 @@ groups:
     title: Fraud
     description: Capabilities exposed by the fraud detection service.
 capabilities:
-  - id: payments:read:invoice
+  - id: payments|read|invoice
     title: Read invoice
     description: Retrieve an existing Invoice by id.
     group: g.payments
@@ -379,7 +381,7 @@ capabilities:
     data-sensitivity: pii
     risk-tier: medium
 
-  - id: payments:transfer:bank-account
+  - id: payments|transfer|bank-account
     title: Transfer funds
     description: Initiate a funds transfer between bank accounts.
     group: g.payments
@@ -395,7 +397,7 @@ capabilities:
     data-sensitivity: confidential
     risk-tier: critical
 
-  - id: lending:approve:loan
+  - id: lending|approve|loan
     title: Approve loan
     description: Approve a loan application or facility change.
     group: g.lending
@@ -411,7 +413,7 @@ capabilities:
     data-sensitivity: confidential
     risk-tier: critical
 
-  - id: fraud:flag:transaction
+  - id: fraud|flag|transaction
     title: Flag transaction
     description: Flag a payment transaction for fraud review.
     group: g.fraud
@@ -444,7 +446,7 @@ target-reference:
   entry-type: Control
 mappings:
   - id: m.transfer.ac3
-    source: payments:transfer:bank-account
+    source: payments|transfer|bank-account
     relationship: implements
     targets:
       - entry-id: AC-3
@@ -467,7 +469,7 @@ govops drift \
   --engine cedar
 ```
 
-A Type-C finding on `payments:transfer:bank-account` means the supplied policy release does not match the catalog's `context.acr == 'urn:mfa'` expectation — the gap is expressed in **capability id** terms, not a separate metrics framework.
+A Type-C finding on `payments|transfer|bank-account` means the supplied policy release does not match the catalog's `context.acr == 'urn:mfa'` expectation — the gap is expressed in **capability id** terms, not a separate metrics framework.
 
 ---
 
