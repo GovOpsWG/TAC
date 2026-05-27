@@ -13,7 +13,7 @@ This document proposes a design for representing **authorization capabilities** 
 Three ideas combine to form the design:
 
 1. **Capabilities are action–resource pairs**;  At evaluation time, a PDP receives a **PARC-shaped request**. Engine neutrality comes from the fact that every PDP class can consume PARC-shaped requests while the catalog stays a domain-centric inventory of discrete **(action, resource)** entries.
-2. **A GovOps repository centered on `GovOps-ACCC`.** A single `#CapabilityCatalog` inventories the enterprise's authorization surface; a `#Lexicon` defines canonical terms; and **`#MappingDocument` files link capabilities to an OSCAL-aligned control layer first** (abstract control objectives or a `#ControlCatalog`), not directly to NIST, ISO, or SOC 2 control numbers. Governance metadata (risk-tier, sensitivity, documented context expectations) lives **on the capability entries**, not in a parallel pillar or scoring framework. 
+2. **A GovOps repository centered on `GovOps-ACC`.** A single `#CapabilityCatalog` inventories the enterprise's authorization surface; a `#Lexicon` defines canonical terms; and **`#MappingDocument` files link capabilities to an OSCAL-aligned control layer first** (abstract control objectives or a `#ControlCatalog`), not directly to NIST, ISO, or SOC 2 control numbers. Governance metadata (risk-tier, sensitivity, documented context expectations) lives **on the capability entries**, not in a parallel pillar or scoring framework. 
 3. **Policy binaries are not stored in this repository** — they are authored and published separately as versioned artifacts and distributed using software supply-chain trust models (signing, provenance, registries).
 4. **Catalog–policy alignment.** `govops lint` validates the catalog; `govops drift` compares the catalog to **published policy releases** (supplied at run time by URI, digest, or local path) so the authorization surface stays enumerable and aligned with enforcement.
 
@@ -91,7 +91,7 @@ A GovOps repository is a directory of **Gemara artifacts** that describe the ent
 govops/
   lexicon.yaml                      # Lexicon
   metadata.yaml                     # Shared metadata fragments (optional)
-  GovOps-ACCC.yaml                   # #CapabilityCatalog (Authorization Capability Profile)
+  GovOps-ACC.yaml                   # #CapabilityCatalog (Authorization Capability Profile)
   GovOps-ACO.yaml                    # optional: #ControlCatalog (OSCAL-aligned abstract controls)
   mappings/                         # primary: Capability → abstract controls (#MappingDocument)
   exports/oscal/                    # optional: Trestle workspace input / govops OSCAL emit
@@ -104,7 +104,7 @@ Mapping each top-level item to a Gemara artifact type:
 |---|---|---|
 | `lexicon.yaml` | `#Lexicon` | Canonical action verbs and resource type names. |
 | `metadata.yaml` | shared `#Metadata` includes | Author, version, lexicon reference, applicability groups. |
-| `GovOps-ACCC.yaml` | `#CapabilityCatalog` of `#AuthorizationCapability` | Enterprise authorization surface. |
+| `GovOps-ACC.yaml` | `#CapabilityCatalog` of `#AuthorizationCapability` | Enterprise authorization surface. |
 | `GovOps-ACO.yaml` | `#ControlCatalog` (optional) | OSCAL-aligned abstract control objectives (enterprise or GovOps reference). |
 | `mappings/` | `#MappingDocument` | **Primary:** capability → abstract control mappings. Framework projections are downstream (Trestle/OSCAL). |
 | `exports/oscal/` | convention | Artifacts for Trestle import/transform (catalog fragments, mapping-collection inputs). |
@@ -116,7 +116,7 @@ Notes:
 
 ---
 
-## 6. The Authorization Capability Catalog (`GovOps-ACCC`)
+## 6. The Authorization Capability Catalog (`GovOps-ACC`)
 
 ### 6.1 Where it sits in Gemara
 
@@ -327,7 +327,7 @@ Layer-3 `#Risk` entries and `#Policy` documents reference threats and controls i
 
 ## 7. Optional Gemara layering and context expectations
 
-The **Authorization Capability Catalog** (`GovOps-ACCC`) is the Phase 1 core. Organizations MAY also maintain standard Gemara `#ControlCatalog`, `#ThreatCatalog`, `#Risk`, and `#Policy` artifacts that reference capability ids (see §6.7). That full layered model is valuable but **not required** for ACC conformance and is **not** split into a separate pillar or scoring silo.
+The **Authorization Capability Catalog** (`GovOps-ACC`) is the Phase 1 core. Organizations MAY also maintain standard Gemara `#ControlCatalog`, `#ThreatCatalog`, `#Risk`, and `#Policy` artifacts that reference capability ids (see §6.7). That full layered model is valuable but **not required** for ACC conformance and is **not** split into a separate pillar or scoring silo.
 
 ### 7.1 Documented context expectations
 
@@ -461,14 +461,14 @@ mappings:
         rationale: Strong authentication evidence expected in PARC Context for transfers.
 ```
 
-A GovOps-native compliance query becomes: *"Which capabilities at `risk-tier >= high` lack a mapping to `govops.ac-03.access-enforcement`?"* — answered from `GovOps-ACCC` and this mapping document alone.
+A GovOps-native compliance query becomes: *"Which capabilities at `risk-tier >= high` lack a mapping to `govops.ac-03.access-enforcement`?"* — answered from `GovOps-ACC` and this mapping document alone.
 
 ### 8.3 Framework projection via Trestle/OSCAL (illustrative)
 
 **NIST SP 800-53 Rev. 5**, **ISO 27001**, **SOC 2**, and other accreditations are **downstream**. Trestle imports framework catalogs as OSCAL JSON/YAML, maintains mapping collections between catalogs, resolves profiles, and emits SSPs, assessment plans, and results. A capability traced to `govops.ac-03.access-enforcement` may project to NIST `AC-3` and `IA-2(1)` through an OSCAL mapping collection—without changing the capability id or GovOps semantics when NIST revises.
 
 ```text
-GovOps-ACCC (capabilities)
+GovOps-ACC (capabilities)
     │  #MappingDocument (Gemara)
     ▼
 GovOps-ACO / abstract control catalog
@@ -512,7 +512,7 @@ GovOps and Gemara own the **ontology of authorization capabilities and governanc
 
 | Layer | Owner | Role | Artifacts |
 |---|---|---|---|
-| **Enterprise truth** | Gemara / GovOps | Finite authorization surface; governance metadata on capabilities | `#CapabilityCatalog` (`GovOps-ACCC`), `#Lexicon`, capability → control `#MappingDocument` |
+| **Enterprise truth** | Gemara / GovOps | Finite authorization surface; governance metadata on capabilities | `#CapabilityCatalog` (`GovOps-ACC`), `#Lexicon`, capability → control `#MappingDocument` |
 | **Compliance interoperability** | OSCAL Compass / Trestle | Normalize, validate, transform, and compose OSCAL documents; bridge governance to operational compliance tooling | OSCAL catalog, profile, **mapping collection**, component-definition, SSP, assessment-plan, assessment-results, POA&M |
 | **Framework renderings** | NIST, ISO, AICPA, regulators, enterprise GRC | Downstream targets that evolve on independent cadences | NIST SP 800-53, ISO/IEC 27001, SOC 2, FedRAMP, PCI, OSPS Baseline, internal control sets |
 
@@ -543,7 +543,7 @@ This matches how Trestle is used in practice: an ensemble for **creating, valida
 
 ### 9.3 Gemara `#MappingDocument` usage
 
-Use Gemara's `#MappingDocument` with `source-reference` pointing at **`#CapabilityCatalog`** (`GovOps-ACCC`) and `entry-type: Capability`. The **primary target** is an OSCAL-aligned `#ControlCatalog` (enterprise `GovOps-ACO` or a GovOps reference catalog)—**not** NIST/ISO/SOC 2 control ids in the ACC core layout.
+Use Gemara's `#MappingDocument` with `source-reference` pointing at **`#CapabilityCatalog`** (`GovOps-ACC`) and `entry-type: Capability`. The **primary target** is an OSCAL-aligned `#ControlCatalog` (enterprise `GovOps-ACO` or a GovOps reference catalog)—**not** NIST/ISO/SOC 2 control ids in the ACC core layout.
 
 Secondary mappings (framework catalog ↔ abstract catalog, OSPS Baseline ↔ capabilities) MAY live in the GovOps repository for convenience or in a **Trestle workspace** under `catalogs/`, `profiles/`, and mapping-collection paths. Both are valid; the **normative GovOps boundary** remains capability → abstract control.
 
@@ -561,8 +561,8 @@ Phase 1 reference tooling (no Gemara schema changes beyond the optional Authoriz
 
 1. **`govops lint`** — Capability `id` matches SHA-256 of `<group-slug>|<action-slug>|<resource-slug>`, lexicon resolution, group membership, applicability-group value checks, engine-binding well-formedness.
 2. **`govops drift`** — Compare catalog **(action, resource)** entries to **published policy releases** per engine (artifacts passed in at run time by path, URI, or digest); report Type A (catalog without policy), Type B (policy without catalog), Type C (context-expectation mismatch).
-3. **IGA exporter** — Emit CSV / SCIM from `GovOps-ACCC` for entitlement catalogs and access reviews.
-4. **`govops oscal-export` (optional)** — Emit OSCAL-aligned catalog/mapping fragments for import into a Trestle workspace; framework projection is completed with `trestle` commands (import, merge, profile resolve, mapping collection).
+3. **`govops oscal-export`** —  Emit OSCAL-aligned catalog/mapping fragments for import into a Trestle workspace; framework projection is completed with `trestle` commands (import, merge, profile resolve, mapping collection).
+4. **IGA exporter** — (optional) Emit CSV / SCIM from `GovOps-ACC` for entitlement catalogs and access reviews.
 
 Engine-specific drift plug-ins treat policy formats as opaque. A future phase MAY add `govops prove` for symbolic analysis of context expectations (§7.2).
 
@@ -572,7 +572,7 @@ Engine-specific drift plug-ins treat policy formats as opaque. A future phase MA
 
 **Phase 0 — Convention-only profile (today).** Use stable `#CapabilityCatalog` with §6.2(A) front-matter; validate with existing Gemara tooling.
 
-**Phase 1 — GovOps overlay and reference mappings.** Publish `#AuthorizationCapability` CUE overlay, reference `GovOps-ACCC` / `GovOps-ACO` templates, capability → abstract-control mappings, Trestle workspace examples for NIST/ISO/SOC 2 projection, `govops lint` and `govops drift`.
+**Phase 1 — GovOps overlay and reference mappings.** Publish `#AuthorizationCapability` CUE overlay, reference `GovOps-ACC` / `GovOps-ACO` templates, capability → abstract-control mappings, Trestle workspace examples for NIST/ISO/SOC 2 projection, `govops lint` and `govops drift`.
 
 **Phase 2 — Upstream into Gemara.** Propose `#AuthorizationCapability` via Gemara ADR when stable.
 

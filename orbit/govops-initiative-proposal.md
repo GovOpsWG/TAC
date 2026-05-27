@@ -11,26 +11,22 @@
 **Related:**
 - GovOps Phase 1 technical design — [Authorization Capability Catalog Design](./authorization-capability-catalog-design.md)
 - GovOps use cases (companion) — [Authorization Capability Catalog Use Cases](./authorization-capability-catalog-use-cases.md)
-- OpenID AuthZEN Authorization API - [version 1.0](https://openid.net/specs/authorization-api-1_0.html) which defines PARC (Principal, Action, Resource, Context) **authorization request** shape
+- OpenID AuthZEN Authorization API - [version 1.0](https://openid.net/specs/authorization-api-1_0.html) which defines the "**PARC**" (**P**rincipal, **A**ction, **R**esource, **C**ontext) authorization request shape (in AuthZen "subject" == "principal")
 
 ---
 
 ## 1. One-page summary
 
-The **GovOps Initiative** develops interoperable, vendor-neutral Gemara artifacts and tooling for **governance of the software authorization surface**. GovOps takes a **capability-based** approach: the **unit of governance in the catalog** is the **(action, resource)** pair — the capability — not the identity of the requester. In one sentence: the GovOps Authorization Capability Catalog ("ACC") is to **authorization governance** what OSPS Baseline is to **project security baselines** — a maintainer-friendly catalog plus an enterprise-grade overlay, both expressed as Gemara schema, both consumable by ORBIT tooling.
+The **GovOps Technical Initiative** will develop interoperable, vendor-neutral Gemara artifacts and tooling for **governance of the software authorization surface**. GovOps takes a **capability-based** approach: the **unit of governance in the catalog** is the **(action, resource)** pair — the capability — not the identity of the requester. 
 
-GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization Capability Catalog (ACC)** — a Gemara-based inventory of **(action, resource)** capabilities plus tooling to keep the catalog valid and aligned with deployed policy.
-
-Phase 1 deliverables use existing Gemara artifact types (no schema changes required to begin):
+Phase 1 will focus on the **Authorization Capability Catalog (ACC)** — a Gemara-based inventory of **(action, resource)** capabilities plus tooling to keep the catalog aligned with deployed policy and connected to automated compliance infrastructure. The deliverables use existing Gemara artifact types (no schema changes required to begin):
 
 1. An **Authorization Capability Profile** of `#Capability` — `GovOps-ACC.yaml` whose entries identify capabilities by **`group`, `action`, and `resource`** (hashed into an opaque `id`), with optional risk-tier, sensitivity, and documented context expectations (see design document).
-2. A **GovOps repository convention** — `govops/` with `GovOps-ACC.yaml`, `#Lexicon`, `mappings/` and `exports/`. (design §5).
+2. A **GovOps folder convention** — `govops/` with `GovOps-ACC.yaml`, `#Lexicon`, `mappings/` and `exports/`. 
 3. **`#MappingDocument` artifacts** linking capability ids to an **OSCAL-aligned abstract control layer** first (`GovOps-ACO` or equivalent `#ControlCatalog`); NIST 800-53, ISO 27001, SOC 2, OSPS Baseline, and other frameworks are downstream projections via **Trestle/OSCAL** (catalogs, profiles, mapping collections).
-4. **Reference tooling** — `govops lint`, `govops drift`, and the **IGA exporter** (design §10).
+4. **Reference tooling** — `govops lint`, `govops drift`, and optionally (time allowing) an IGA exporter or importer, to connect to existing identity governance infrastructure.
 
-A technical design and five persona-driven use cases exist in this repository: [`authorization-capability-catalog-design.md`](./authorization-capability-catalog-design.md) and [`authorization-capability-catalog-use-cases.md`](./authorization-capability-catalog-use-cases.md).
-
-GovOps Phase 1 is authorization engine-neutral. The catalog describes what is *governed*; at runtime, PDPs evaluate **PARC-shaped requests** (e.g. an OpenID AuthZEN Authorization API request). 
+GovOps Phase 1 is authorization engine-neutral. The catalog describes what is *governed*; at runtime, a Policy Decision Point ("PDP") evaluates a **PARC-shaped requests**, e.g. an OpenID AuthZEN Authorization API request. PDP implementations may use policy engines, graphs (e.g. Zanzibar), or other strategies to decide the request. This GovOps initiative doesn't have any opinion on the best way to decide.
 
 ---
 
@@ -64,7 +60,7 @@ Develop and maintain interoperable, engine-neutral **capability catalog** artifa
 - **GovOps repository convention** — `GovOps-ACC.yaml`, optional `GovOps-ACO.yaml`, lexicon, primary mappings, `exports/oscal/` for Trestle (design §5).
 - Reference **capability → abstract-control** mappings; **Trestle workspace examples** projecting to OSPS Baseline, NIST 800-53, ISO 27001, and SOC 2.
 - **OSS-project-sized template** for typical maintainers.
-- **`govops lint`** and **`govops drift`** reference tools; **IGA exporter** for entitlement catalogs.
+- **`govops lint`** and **`govops drift`** reference tools; IGA exporter for entitlement catalogs.
 - **Conformance criteria** for ACC catalogs and GovOps repositories.
 - Liaison with OpenID AuthZEN (PARC), Gemara (schema), OSCAL Compass / Trestle (compliance interchange), OSPS (templates).
 
