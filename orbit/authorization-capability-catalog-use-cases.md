@@ -19,7 +19,7 @@ Six use cases at **Acme Bank** share a payments, lending, and fraud authorizatio
 | `3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd` | Lending | critical | Human approvers; SoD in context |
 | `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` | Fraud | high | Fraud System + analysts (UC-06) |
 
-Governance metadata (risk-tier, sensitivity, documented context expectations) lives **on capability entries** — not in a separate metrics framework.
+Governance metadata (risk-tier, sensitivity, documented context expectations) lives **on capability entries** — not in a separate metrics framework. **Compliance:** capabilities map first to OSCAL-aligned abstract controls in Gemara; NIST, ISO, SOC 2, and other frameworks are projected via Trestle/OSCAL (design §9).
 
 Personas: **Platform Security Engineer** (UC-01, UC-04, UC-05), **Compliance Auditor** (UC-02), **IGA Team** (UC-03), **Lending Officer** (UC-02, UC-05), **Fraud System** (non-human actor, UC-06), and **Policy Engine Operator** (secondary in several flows).
 
@@ -45,7 +45,7 @@ Tooling in scope: `govops lint`, `govops drift`, IGA exporter. CI/CD runs lint a
 | Persona | Role | Use Cases (primary) | Use Cases (secondary) |
 |---|---|---|---|
 | Platform Security Engineer | Deploys PDPs and maintains the GovOps repository | UC-01, UC-04, UC-05 | UC-03 |
-| Compliance Auditor | NIST / ISO / SOC 2 conformance | UC-02 | — |
+| Compliance Auditor | OSCAL-aligned controls; NIST / ISO / SOC 2 via Trestle | UC-02 | — |
 | Lending Officer | Loan approval policy and lending capability stewardship | — | UC-02, UC-05 |
 | IGA Team | Access reviews and entitlement lifecycle | UC-03 | UC-04 |
 | Fraud System | Non-human fraud detection service (software agent) | UC-06 | — |
@@ -393,7 +393,7 @@ The engineer confirms that `risk-tier` and `sensitivity` assignments will scope 
 
 ### Context
 
-Auditors need to trace from framework controls (NIST 800-53, ISO 27001) to **capability ids** in `GovOps-AC`, not through a parallel control or metrics layer.
+Auditors need to trace from framework controls (NIST 800-53, ISO 27001, SOC 2) to **capability ids** in `GovOps-ACC`, without embedding framework semantics in the capability catalog. GovOps maps **first** to OSCAL-aligned abstract control objectives (`GovOps-ACO`); **Trestle** projects those controls to NIST, ISO, and SOC 2 via OSCAL catalogs, profiles, and mapping collections.
 
 ### Actors
 
@@ -402,75 +402,94 @@ Auditors need to trace from framework controls (NIST 800-53, ISO 27001) to **cap
 
 ### Preconditions
 
-- UC-01 complete: `GovOps-AC.yaml` passes `govops lint`.
-- `govops/mappings/acme-capabilities-nist-iso.yaml` exists.
+- UC-01 complete: `GovOps-ACC.yaml` passes `govops lint`.
+- `govops/GovOps-ACO.yaml` defines abstract control objectives (OSCAL-aligned `#ControlCatalog`).
+- `govops/mappings/acme-capabilities-to-controls.yaml` exists (capability → abstract controls).
+- A Trestle workspace under `govops/exports/oscal/` imports NIST SP 800-53 Rev. 5 and maintains a mapping collection from `GovOps-ACO` to the NIST catalog.
 
 ### Step-by-Step Workflow
 
-**Step 1 — Review `#MappingDocument` from capabilities to frameworks.**
+**Step 1 — Review primary `#MappingDocument` (capabilities → abstract controls).**
 
 ```yaml
-# govops/mappings/acme-capabilities-nist-iso.yaml (excerpt)
+# govops/mappings/acme-capabilities-to-controls.yaml (excerpt)
 metadata:
-  id: map.acme.ec.nist-iso
+  id: map.acme.acc.aco
   type: MappingDocument
 source-reference:
-  reference-id: ec
+  reference-id: acc
   entry-type: Capability
 target-reference:
-  reference-id: nist80053r5
+  reference-id: aco
   entry-type: Control
 mappings:
-  - id: m.transfer.ac3
+  - id: m.transfer.access-enforcement
     source: 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
     relationship: implements
     targets:
-      - entry-id: AC-3
+      - entry-id: govops.ac-03.access-enforcement
         rationale: Critical transfer capability; MFA in documented-context-expectations.
-      - entry-id: IA-2(1)
-  - id: m.lending.ac5
+      - entry-id: govops.ia-02.strong-authentication
+  - id: m.lending.separation-of-duties
     source: 3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd
     relationship: implements
     targets:
-      - entry-id: AC-5
+      - entry-id: govops.ac-05.separation-of-duties
         rationale: Separation of duties via documented approver context.
 ```
 
-**Step 2 — Query: high-risk capabilities without AC-3 mapping.**
+**Step 2 — Query at the GovOps layer (abstract controls).**
 
-Manual review or catalog query: `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` (`risk-tier: high`) has no mapping to AC-3 while `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3` and `3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd` do. The **Lending Officer** adds an AC-3 mapping for `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` (e.g., to AU-6 automated monitoring) or documents risk acceptance before audit close.
+Manual review or catalog query: `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` (`risk-tier: high`) has no mapping to `govops.ac-03.access-enforcement` while `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3` and `3c6e0df2c70f2ecdea45d9e413db49b8c5e94921eb34eb7eb2a6de3ea46919cd` do. The **Lending Officer** adds a mapping for the fraud capability (e.g., to `govops.au-06.audit-monitoring`) or documents risk acceptance before audit close. Framework-specific NIST `AC-3` labels are **not** edited on capability rows.
 
-**Step 3 — Evidence trace for a capability.**
+**Step 3 — Framework projection with Trestle.**
 
-For NIST AC-3 on `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3`:
+The auditor resolves `govops.ac-03.access-enforcement` to NIST SP 800-53 controls through the Trestle workspace (OSCAL mapping collection), not through a direct Gemara capability → NIST mapping:
 
+```bash
+# Illustrative: NIST catalog already imported via trestle import
+cd govops/exports/oscal/
+trestle validate -a catalogs
+# Mapping collection links GovOps-ACO control ids to NIST SP 800-53 rev5 catalog entries
 ```
-NIST AC-3
-  → MappingDocument m.transfer.ac3
-  → Capability 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
+
+**Step 4 — Evidence trace for a capability (two-hop).**
+
+For access enforcement on `0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3`:
+
+```text
+Capability 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
+  → MappingDocument m.transfer.access-enforcement
+  → govops.ac-03.access-enforcement (GovOps-ACO)
+  → (Trestle) OSCAL mapping collection → NIST SP 800-53 AC-3, IA-2(1)
   → risk-tier: critical, documented-context-expectations (context.acr == urn:mfa)
-  → (optional) policies/payments-cedar.cedar verified by govops drift (UC-04)
+  → (optional) published Cedar policy verified by govops drift (UC-04)
 ```
 
-The auditor relies on **catalog fields** and mapping rationale; separate pillar scorecards are not used.
+The auditor relies on **catalog fields**, the primary Gemara mapping, and Trestle-resolved framework views—not ad hoc spreadsheets or parallel pillar scorecards.
 
 ### Artifacts Produced or Modified
 
 | Artifact | Gemara type | Path |
 |---|---|---|
-| Compliance mapping | `#MappingDocument` | `govops/mappings/acme-capabilities-nist-iso.yaml` |
+| Abstract control catalog | `#ControlCatalog` | `govops/GovOps-ACO.yaml` |
+| Primary compliance mapping | `#MappingDocument` | `govops/mappings/acme-capabilities-to-controls.yaml` |
+| Framework projection | OSCAL (Trestle workspace) | `govops/exports/oscal/` (NIST catalog, mapping collection) |
 
 ### Correctness Properties Demonstrated
 
 - **P1:** All capability ids in mappings are valid SHA-256 capability ids per design §6.2(A).
+- **P2:** Primary mappings target abstract `govops.*` control ids, not NIST literals in the ACC core.
 - **P4:** All required subsections present.
 
 ### Cross-References
 
 | Item | Reference |
 |---|---|
-| `#MappingDocument` | Design §9 |
-| Worked example mapping | Design §8.2 |
+| Compliance architecture | Design §9 |
+| `#MappingDocument` (primary hop) | Design §9.3 |
+| Worked example | Design §8.2–8.3 |
+| Trestle/OSCAL interoperability | Design §9.1, §14 |
 
 ---
 
@@ -1094,7 +1113,7 @@ A human analyst flagging the same transaction uses the identical capability id a
 | Use Case | Primary Persona | Toolchain | Design §§ |
 |---|---|---|---|
 | UC-01: Capability Catalog Authoring | Platform Security Engineer | `govops lint` | §6, §10 |
-| UC-02: Compliance Mapping and Audit | Compliance Auditor | — | §8–9 |
+| UC-02: Compliance Mapping and Audit | Compliance Auditor | Trestle (OSCAL projection) | §8–9 |
 | UC-03: IGA Integration | IGA Team | IGA Exporter, `govops drift` | §6, §10 |
 | UC-04: Policy Drift Detection | Platform Security Engineer | `govops drift` | §7.1, §10 |
 | UC-05: Continuous Governance in CI/CD | Platform Security Engineer | `govops lint`, `govops drift` | §10–11 |
