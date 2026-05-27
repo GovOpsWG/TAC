@@ -166,7 +166,7 @@ The 2/3 threshold per CHARTER §3.c is met if any three of the four leads vote y
 
 ## 7. Relationship to the proposed GovOps WG
 
-A separate **OpenSSF GovOps Working Group** proposal ([`openssf-wg-proposal.md`](./openssf-wg-proposal.md)) may produce framework and operating-model documents.
+A separate **OpenSSF GovOps Working Group**, to be formed at a later time, may produce framework and operating-model documents.
 
 - **GovOps Initiative (ORBIT TI):** Gemara artifacts, Authorization Capability Profile, templates, `govops lint` / `govops drift`, primary mappings, Trestle/OSCAL examples, conformance criteria.
 - **GovOps WG (if approved):** Informative framework documents referencing those artifacts.
@@ -184,7 +184,7 @@ Same pattern as OSPS Baseline (ORBIT) + Best Practices WG.
 ### 8.2 Anticipated contributors
 
 IGA practitioners, GRC engineers, authorization vendors, OSS authz maintainers. Currently there are 
-85 members in the [GovOps Group on Linkedin](https://www.linkedin.com/groups/17478011/). 
+90 members in the [GovOps Group on Linkedin](https://www.linkedin.com/groups/17478011/). 
 
 ### 8.3 Lead succession
 
