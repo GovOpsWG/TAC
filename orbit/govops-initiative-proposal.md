@@ -15,7 +15,7 @@
 
 ---
 
-## 1. One-page summary
+## 1. Summary
 
 The **GovOps Technical Initiative** will develop interoperable, vendor-neutral Gemara artifacts and tooling for **governance of the software authorization surface**. GovOps takes a **capability-based** approach: the **unit of governance in the catalog** is the **(action, resource)** pair — the capability — not the identity of the requester. 
 
@@ -34,13 +34,13 @@ GovOps Phase 1 is authorization engine-neutral. The catalog describes what is *g
 
 ORBIT's mission per CHARTER.md §1.a is *"to develop and maintain interoperable resources related to the identification and presentation of security-relevant data."* Authorization decisions are among the most security-relevant data an enterprise or open-source project produces.
 
-Today the authorization surface is catalogued indirectly — entitlements, roles, engine-specific policy strings — with no standard way to **inventory** what **(action, resource)** pairs exist or how they are governed. GovOps catalogues  surface  **capabilities** and keeps them aligned with enforcement via drift detection.
+Today the authorization surface is catalogued indirectly — entitlements, roles, engine-specific policy strings — with no standard way to **inventory** what **(action, resource)** pairs exist or how they are governed. For example, MCP services expose tool calls on backend data--how is access to these tools controlled? And how are the obligations and restrictions specified for the returned data? An enteprise inventory of capabilities is essential to create dashboards and metrics that will enable governance, i.e. risk management, accountability, and transparency. 
 
-Specifically, GovOps:
+GovOps catalogues capabilities and keeps them aligned with enforcement via drift detection. Specifically, GovOps:
 
 - Makes the authorization surface **identifiable** as a finite set of opaque capability ids (SHA-256 of group, action, and resource slugs).
 - Makes it **presentable** as Gemara YAML/JSON validatable against stable schema.
-- Makes compliance and IGA workflows **interoperable**: Gemara mappings to abstract controls; **Trestle/OSCAL** translates to NIST, ISO, SOC 2, FedRAMP, PCI, and internal accreditations without changing capability semantics.
+- Makes compliance **interoperable**: Gemara mappings to abstract compliance controls; **Trestle/OSCAL** translates to NIST, ISO, SOC 2, FedRAMP, PCI, and internal accreditations without changing capability semantics.
 
 The work is cross-cutting across the four existing TIs (§5), satisfies CHARTER §3.c.i interoperability, and follows the OSPS Baseline / Security Insights artifact style.
 
@@ -64,7 +64,7 @@ Develop and maintain interoperable, engine-neutral **capability catalog** artifa
 - **Conformance criteria** for ACC catalogs and GovOps repositories.
 - Liaison with OpenID AuthZEN (PARC), Gemara (schema), OSCAL Compass / Trestle (compliance interchange), OSPS (templates).
 
-### 3.3 Out of scope (every phase)
+### 3.3 Some of what's out scope
 
 - New policy languages, evaluation APIs, or policy store specifications.
 - Production PDPs, IGA systems, or runtime enforcement products.
