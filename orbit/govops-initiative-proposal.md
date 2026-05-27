@@ -23,9 +23,9 @@ GovOps is structured as a multi-phase initiative. **Phase 1 is the Authorization
 
 Phase 1 deliverables use existing Gemara artifact types (no schema changes required to begin):
 
-1. An **Authorization Capability Profile** of `#Capability` — `GovOps-AC.yaml` whose entries identify capabilities by **`group`, `action`, and `resource`** (hashed into an opaque `id`), with optional risk-tier, sensitivity, and documented context expectations (see design document).
-2. A **GovOps repository convention** — `govops/` with `GovOps-AC.yaml`, `#Lexicon`, `mappings/` and `exports/`. (design §5).
-3. **`#MappingDocument` artifacts** linking capability ids to an **OSCAL-aligned abstract control layer** first (`GovOps-ACO` or equivalent `#ControlCatalog`); **NIST 800-53, ISO 27001, SOC 2, OSPS Baseline, and other frameworks** are downstream projections via **Trestle/OSCAL** (catalogs, profiles, mapping collections)—not embedded in capability rows.
+1. An **Authorization Capability Profile** of `#Capability` — `GovOps-ACC.yaml` whose entries identify capabilities by **`group`, `action`, and `resource`** (hashed into an opaque `id`), with optional risk-tier, sensitivity, and documented context expectations (see design document).
+2. A **GovOps repository convention** — `govops/` with `GovOps-ACC.yaml`, `#Lexicon`, `mappings/` and `exports/`. (design §5).
+3. **`#MappingDocument` artifacts** linking capability ids to an **OSCAL-aligned abstract control layer** first (`GovOps-ACO` or equivalent `#ControlCatalog`); NIST 800-53, ISO 27001, SOC 2, OSPS Baseline, and other frameworks are downstream projections via **Trestle/OSCAL** (catalogs, profiles, mapping collections).
 4. **Reference tooling** — `govops lint`, `govops drift`, and the **IGA exporter** (design §10).
 
 A technical design and five persona-driven use cases exist in this repository: [`authorization-capability-catalog-design.md`](./authorization-capability-catalog-design.md) and [`authorization-capability-catalog-use-cases.md`](./authorization-capability-catalog-use-cases.md).
@@ -82,7 +82,7 @@ Develop and maintain interoperable, engine-neutral **capability catalog** artifa
 |---|---|---|---|
 | Gemara | Defines the schema. | Consumes schema; contributes Authorization Capability Profile ADR. | None — consumer/contributor. |
 | OSPS Baseline | Project security baseline controls. | Authorization-surface inventory + mappings. | None — different domain. |
-| Security Insights Spec | Machine-readable project security info. | Publishable `GovOps-AC.yaml` reference from SI. | Adjacent. |
+| Security Insights Spec | Machine-readable project security info. | Publishable `GovOps-ACC.yaml` reference from SI. | Adjacent. |
 | ORBIT Launchpad | Tooling matchmaking. | Adoption pattern for authz tooling + catalogs. | Complementary. |
 
 ---
@@ -133,7 +133,7 @@ CHARTER §3.c requires interoperability with **no less than two** other TIs. Gov
 
 ### 5.3 Security Insights Specification (Lead: Eddie Knight, Sonatype — TSC Chair)
 
-**Form of interop:** Published `GovOps-AC.yaml` referenceable from Security Insights manifests.
+**Form of interop:** Published `GovOps-ACC.yaml` referenceable from Security Insights manifests.
 
 **What Security Insights gains:** Structured authorization-surface data for SI consumers; downstream story for ADR-0019.
 

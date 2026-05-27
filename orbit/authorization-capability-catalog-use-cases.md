@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document shows how enterprise personas use the **GovOps Authorization Capability Catalog** (`GovOps-AC`) and Phase 1 toolchain in real workflows. The design document specifies the artifact model; this document shows **how** it is used.
+This document shows how enterprise personas use the **GovOps Authorization Capability Catalog** (`GovOps-ACC`) and Phase 1 toolchain in real workflows. The design document specifies the artifact model; this document shows **how** it is used.
 
 Six use cases at **Acme Bank** share a payments, lending, and fraud authorization domain. **UC-01** establishes four base capabilities; later use cases show catalog evolution (additional ids, deprecations) as called out below. Capability **ids** are SHA-256 digests of `<group-slug>|<action-slug>|<resource-slug>` (design §6.2); **title** and export columns carry human-readable labels.
 
@@ -53,7 +53,7 @@ Tooling in scope: `govops lint`, `govops drift`, IGA exporter. CI/CD runs lint a
 
 **Catalog state by use case** (avoid mixing excerpts from different points in time):
 
-| Use case | `GovOps-AC` state |
+| Use case | `GovOps-ACC` state |
 |---|---|
 | UC-01, UC-02, UC-06 | Four base capabilities only |
 | UC-03 | Adds `d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2`, `6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb`; deprecates `18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7` |
@@ -66,7 +66,7 @@ Tooling in scope: `govops lint`, `govops drift`, IGA exporter. CI/CD runs lint a
 ### Context
 
 The enterprise must have a well-formed capability catalog before mappings, IGA export, or drift checks can run. This use case shows how a Platform Security
-Engineer builds `GovOps-AC.yaml` from scratch: defining canonical vocabulary in the
+Engineer builds `GovOps-ACC.yaml` from scratch: defining canonical vocabulary in the
 `#Lexicon`, authoring capability entries in both supported profiles, assigning
 applicability groups, and validating the result with `govops lint`. Getting the catalog
 right at this stage is the foundation for every downstream workflow.
@@ -82,7 +82,7 @@ right at this stage is the foundation for every downstream workflow.
 - The GovOps toolchain (`govops lint`) is installed and on the `PATH`.
 - The engineer has identified the set of (action, resource) pairs Acme exposes across
   payments, lending, and fraud services.
-- No `GovOps-AC.yaml` or `lexicon.yaml` exists yet in the repository.
+- No `GovOps-ACC.yaml` or `lexicon.yaml` exists yet in the repository.
 
 ### Step-by-Step Workflow
 
@@ -90,7 +90,7 @@ right at this stage is the foundation for every downstream workflow.
 
 The engineer creates `govops/lexicon.yaml`. Every action verb and resource type name
 that will appear in capability ids MUST be defined here before being referenced in
-`GovOps-AC.yaml`. This is the single source of truth for canonical terms; `govops lint`
+`GovOps-ACC.yaml`. This is the single source of truth for canonical terms; `govops lint`
 will reject any capability whose `action` or `resource` does not resolve to a lexicon
 term id.
 
@@ -149,14 +149,14 @@ terms:
 
 **Step 2 — Author the capability catalog using the convention-only profile (Profile A).**
 
-The engineer creates `govops/GovOps-AC.yaml` and adds the first capability entry using
+The engineer creates `govops/GovOps-ACC.yaml` and adds the first capability entry using
 the convention-only profile (design §6.2(A)). This profile requires no schema change
 and validates against the stable `#CapabilityCatalog` today. The capability `id` is the
 SHA-256 digest of `<group-slug>|<action-slug>|<resource-slug>`; slugs are recorded in a
 YAML front-matter block inside `description` (Profile A) or as typed fields (Profile B).
 
 ```yaml
-# govops/GovOps-AC.yaml  (excerpt — Profile A entry)
+# govops/GovOps-ACC.yaml  (excerpt — Profile A entry)
 title: Acme Authorization Capability Catalog
 metadata:
   id: cat.acme.ec
@@ -291,10 +291,10 @@ With the lexicon and catalog in place, the engineer runs `govops lint` to valida
 lexicon resolution, group membership, and engine-binding well-formedness.
 
 ```
-$ govops lint govops/GovOps-AC.yaml --lexicon govops/lexicon.yaml
+$ govops lint govops/GovOps-ACC.yaml --lexicon govops/lexicon.yaml
 
 govops lint v0.9.0
-Checking: govops/GovOps-AC.yaml
+Checking: govops/GovOps-ACC.yaml
 
   ✓ Lexicon resolved: action.read       → 18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7
   ✓ Lexicon resolved: action.transfer   → 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
@@ -329,10 +329,10 @@ lexicon (`settle` on `payment-order`) — id `00c467f0c7ba1fb43ec62a7b4c7d49ad0c
 Running `govops lint` surfaces the violation:
 
 ```
-$ govops lint govops/GovOps-AC.yaml --lexicon govops/lexicon.yaml
+$ govops lint govops/GovOps-ACC.yaml --lexicon govops/lexicon.yaml
 
 govops lint v0.9.0
-Checking: govops/GovOps-AC.yaml
+Checking: govops/GovOps-ACC.yaml
 
   ✓ Lexicon resolved: action.read       → 18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7
   ✓ Lexicon resolved: action.transfer   → 0c451a4b7305a117ad7e4c874799c5982100823ef1b71db3490fffc35a63fef3
@@ -362,7 +362,7 @@ The engineer confirms that `risk-tier` and `sensitivity` assignments will scope 
 | Artifact | Gemara type | Path | Notes |
 |---|---|---|---|
 | Lexicon | `#Lexicon` | `govops/lexicon.yaml` | Created; defines canonical action verbs and resource type names |
-| Capability catalog | `#CapabilityCatalog` | `govops/GovOps-AC.yaml` | Created; 4 capabilities across 3 groups |
+| Capability catalog | `#CapabilityCatalog` | `govops/GovOps-ACC.yaml` | Created; 4 capabilities across 3 groups |
 
 ### Correctness Properties Demonstrated
 
@@ -499,7 +499,7 @@ The auditor relies on **catalog fields**, the primary Gemara mapping, and Trestl
 
 IGA platforms manage access reviews and entitlement lifecycle, but they traditionally
 operate on opaque permission strings that are hard to interpret in a governance context.
-This use case shows how the IGA Exporter translates `GovOps-AC` into IGA-ingestible
+This use case shows how the IGA Exporter translates `GovOps-ACC` into IGA-ingestible
 formats, how access reviews are scoped by risk-tier and sensitivity using
 applicability-groups, how recertification campaigns reference canonical capability ids,
 and how `govops drift` detects capabilities present in deployed policy but absent from
@@ -512,7 +512,7 @@ the catalog.
 
 ### Preconditions
 
-- `govops/GovOps-AC.yaml` passes `govops lint` (UC-01 complete).
+- `govops/GovOps-ACC.yaml` passes `govops lint` (UC-01 complete).
 - The IGA platform (e.g., SailPoint, Saviynt, or equivalent) is configured to ingest
   capability catalog exports.
 - The GovOps toolchain (IGA Exporter, `govops drift`) is installed.
@@ -520,7 +520,7 @@ the catalog.
 
 ### Step-by-Step Workflow
 
-**Step 1 — Export `GovOps-AC` to IGA-ingestible format.**
+**Step 1 — Export `GovOps-ACC` to IGA-ingestible format.**
 
 The IGA Exporter translates the capability catalog into a CSV format suitable for
 IGA platform ingest. Each row represents one capability with its canonical id,
@@ -528,7 +528,7 @@ human-readable title, risk-tier, and sensitivity classification.
 
 ```
 $ govops iga-export \
-    --catalog govops/GovOps-AC.yaml \
+    --catalog govops/GovOps-ACC.yaml \
     --format csv \
     --output govops/exports/acme-capabilities-2026-05-14.csv
 
@@ -555,11 +555,11 @@ OpenFGA relation names).
 
 The IGA Team configures a quarterly access review scoped to capabilities at
 `risk-tier: critical` or `data-sensitivity: confidential | pii`. The
-`applicability-groups` defined in `GovOps-AC.yaml` drive this scoping.
+`applicability-groups` defined in `GovOps-ACC.yaml` drive this scoping.
 
 ```
 $ govops iga-export \
-    --catalog govops/GovOps-AC.yaml \
+    --catalog govops/GovOps-ACC.yaml \
     --format csv \
     --filter "risk-tier=critical OR sensitivity IN (confidential, pii)" \
     --output govops/exports/acme-high-risk-review-2026-Q2.csv
@@ -586,7 +586,7 @@ targeting only the capabilities that meet the risk threshold.
 **Step 3 — Run a recertification campaign referencing canonical capability ids.**
 
 The IGA platform sends recertification requests to capability owners. Each request
-references the canonical capability id from `GovOps-AC`, not an engine-specific
+references the canonical capability id from `GovOps-ACC`, not an engine-specific
 permission string:
 
 ```
@@ -607,12 +607,12 @@ the IGA recertification history remains intact.
 **Step 4 — Use `govops drift` to detect policy-present/catalog-absent capabilities.**
 
 The IGA Team runs `govops drift` to find capabilities present in deployed policy but
-absent from `GovOps-AC`. These represent "shadow entitlements" — permissions that
+absent from `GovOps-ACC`. These represent "shadow entitlements" — permissions that
 exist in enforcement but are not governed.
 
 ```
 $ govops drift \
-    --catalog govops/GovOps-AC.yaml \
+    --catalog govops/GovOps-ACC.yaml \
     --policy govops/policies/payments-cedar.cedar \
     --engine cedar \
     --policy govops/policies/fraud-detection-opa.rego \
@@ -627,7 +627,7 @@ Cedar engine (govops/policies/payments-cedar.cedar):
   Type B (policy rule with no catalog entry):
     ⚠ action: "batch-transfer", resource: "BankAccount"
         Found in Cedar policy rule: permit(action == "batch-transfer", resource.type == "BankAccount")
-        No corresponding capability in GovOps-AC.yaml
+        No corresponding capability in GovOps-ACC.yaml
         Suggested id: d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2
         Recommendation: Add to catalog or remove from policy.
 
@@ -640,7 +640,7 @@ Summary: 1 drift finding (Type B). 0 Type A. 0 Type C.
 The IGA Team escalates the `d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2` finding to the
 Platform Security Engineer. The engineer determines this is a legitimate capability
 that was added to the Cedar policy without going through the catalog authoring process
-(UC-01 complete). Resolution: add `d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2` to `GovOps-AC.yaml`
+(UC-01 complete). Resolution: add `d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2` to `GovOps-ACC.yaml`
 and run `govops lint` to validate.
 
 **Step 5 — Capability deprecation and IGA catalog update.**
@@ -648,7 +648,7 @@ and run `govops lint` to validate.
 The payments team decides to deprecate `18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7` and replace it with
 `6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb` (a narrower capability that returns only invoice
 headers, not line items, reducing PII exposure). The Platform Security Engineer
-updates `GovOps-AC.yaml`:
+updates `GovOps-ACC.yaml`:
 
 ```yaml
   # Deprecated entry
@@ -681,7 +681,7 @@ The IGA Exporter detects the deprecation and generates a notification:
 
 ```
 $ govops iga-export \
-    --catalog govops/GovOps-AC.yaml \
+    --catalog govops/GovOps-ACC.yaml \
     --format csv \
     --output govops/exports/acme-capabilities-2026-05-28.csv \
     --diff govops/exports/acme-capabilities-2026-05-14.csv
@@ -708,7 +708,7 @@ catalog, and migrates active grants before the deprecation deadline.
 |---|---|---|---|
 | IGA export (full) | CSV | `govops/exports/acme-capabilities-2026-05-14.csv` | Created by IGA Exporter |
 | IGA export (scoped) | CSV | `govops/exports/acme-high-risk-review-2026-Q2.csv` | Created by IGA Exporter with filter |
-| Updated capability catalog | `#CapabilityCatalog` | `govops/GovOps-AC.yaml` | Modified: deprecation + new entries |
+| Updated capability catalog | `#CapabilityCatalog` | `govops/GovOps-ACC.yaml` | Modified: deprecation + new entries |
 
 ### Correctness Properties Demonstrated
 
@@ -749,7 +749,7 @@ ungoverned policy changes from reaching production.
 ### Preconditions
 
 - UC-03 complete: catalog includes `6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb`, `d3800d62f8114ea70388e41c0f87780fa8215c8b4955f4d7d19b7e5c8fe6a3a2`, and deprecated `18420fcf746d2f060e1f24f96bcb820ceca600cad09e1d8a7c5a405db190d1a7`.
-- `govops/GovOps-AC.yaml` passes `govops lint`.
+- `govops/GovOps-ACC.yaml` passes `govops lint`.
 - Deployed policy artifacts exist:
   - `govops/policies/payments-cedar.cedar` (Cedar, payments service)
   - `govops/policies/fraud-detection-opa.rego` (OPA/Rego, fraud detection service)
@@ -761,7 +761,7 @@ ungoverned policy changes from reaching production.
 
 ```
 $ govops drift \
-    --catalog govops/GovOps-AC.yaml \
+    --catalog govops/GovOps-ACC.yaml \
     --policy govops/policies/payments-cedar.cedar --engine cedar \
     --policy govops/policies/fraud-detection-opa.rego --engine opa
 
@@ -773,7 +773,7 @@ Drift Report — Acme Bank (2026-05-28)
 Cedar engine (govops/policies/payments-cedar.cedar):
   [Type A] Catalog entry with no policy rule:
     ⚠ 6d38075d1a6662c34a0b53ccca6b1aa19f1fd460c44e1777d1fb9469e7416dcb
-        Capability in GovOps-AC.yaml (state: Active)
+        Capability in GovOps-ACC.yaml (state: Active)
         No Cedar policy rule found for action="read", resource.type="InvoiceSummary"
         Recommendation: Add policy rule or mark capability as design-time only.
 
@@ -789,7 +789,7 @@ OPA engine (govops/policies/fraud-detection-opa.rego):
   [Type B] Policy rule with no catalog entry:
     ⚠ action: "escalate", resource: "Transaction"
         Found in OPA rule: allow { input.action == "escalate"; input.resource.type == "Transaction" }
-        No corresponding capability in GovOps-AC.yaml
+        No corresponding capability in GovOps-ACC.yaml
         Suggested id: 71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835
         Recommendation: Add to catalog or remove from policy.
 
@@ -822,7 +822,7 @@ Policy Engine Operator adds the Cedar rule. After the policy update, re-running
 **Scenario (b) — Type B: `71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835` in OPA policy, not in catalog.**
 
 The fraud team added an escalation capability to the OPA policy without going through
-the catalog authoring process. The engineer adds `71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835` to `GovOps-AC.yaml`:
+the catalog authoring process. The engineer adds `71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835` to `GovOps-ACC.yaml`:
 
 ```yaml
   - id: 71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835
@@ -894,7 +894,7 @@ remediation workflows.
 
 | Artifact | Gemara type | Path | Notes |
 |---|---|---|---|
-| Updated capability catalog | `#CapabilityCatalog` | `govops/GovOps-AC.yaml` | Modified: added `71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835` |
+| Updated capability catalog | `#CapabilityCatalog` | `govops/GovOps-ACC.yaml` | Modified: added `71a199b73006b3fb9574be4374722a3df00bf691aec5faff7152ffb8327ea835` |
 | Drift exception log | Convention | `govops/exceptions/drift-exceptions.yaml` | Created if exceptions are accepted |
 
 ### Correctness Properties Demonstrated
@@ -950,10 +950,10 @@ pipeline:
   steps:
     - name: lint
       command: govops lint
-      args: [--catalog, govops/GovOps-AC.yaml, --lexicon, govops/lexicon.yaml]
+      args: [--catalog, govops/GovOps-ACC.yaml, --lexicon, govops/lexicon.yaml]
     - name: drift
       command: govops drift
-      args: [--catalog, govops/GovOps-AC.yaml,
+      args: [--catalog, govops/GovOps-ACC.yaml,
              --policy, govops/policies/payments-cedar.cedar, --engine, cedar,
              --policy, govops/policies/fraud-detection-opa.rego, --engine, opa]
 gates:
@@ -975,7 +975,7 @@ Step: govops drift
 
 **Step 3 — Passing pipeline after fix.**
 
-Engineer removes bypass, re-runs pipeline: lint PASS, drift PASS. `GovOps-AC.yaml` and `policies/` are versioned together so governance state is reproducible at any commit.
+Engineer removes bypass, re-runs pipeline: lint PASS, drift PASS. `GovOps-ACC.yaml` and `policies/` are versioned together so governance state is reproducible at any commit.
 
 ### Artifacts Produced or Modified
 
@@ -1011,7 +1011,7 @@ Not every **PARC Principal** is a human. Acme's **Fraud System** is an automated
 
 ### Preconditions
 
-- UC-01 complete: `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` is defined in `GovOps-AC.yaml` with `documented-requester-classes` including `software-agent`.
+- UC-01 complete: `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` is defined in `GovOps-ACC.yaml` with `documented-requester-classes` including `software-agent`.
 - `govops/policies/fraud-detection-opa.rego` is deployed and referenced by the capability's `engine-bindings`.
 - The Fraud System holds a workload identity (e.g., SPIFFE ID or service account) recognized by the PDP.
 
@@ -1019,7 +1019,7 @@ Not every **PARC Principal** is a human. Acme's **Fraud System** is an automated
 
 **Step 1 — Catalog entry defines the non-human actor.**
 
-From `GovOps-AC.yaml` (see UC-01):
+From `GovOps-ACC.yaml` (see UC-01):
 
 ```yaml
   - id: ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2
@@ -1057,7 +1057,7 @@ When the payments pipeline emits a high-risk transaction event, the Fraud System
 }
 ```
 
-The **Action** and **Resource** type align with `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` in `GovOps-AC`. The **Principal** is explicitly non-human. **Context** carries the model score the policy expects.
+The **Action** and **Resource** type align with `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` in `GovOps-ACC`. The **Principal** is explicitly non-human. **Context** carries the model score the policy expects.
 
 **Step 3 — PDP decision and alignment with catalog.**
 
@@ -1067,7 +1067,7 @@ The OPA policy permits the request when `context.fraud.risk-score >= 0.85` and t
 
 ```
 $ govops drift \
-    --catalog govops/GovOps-AC.yaml \
+    --catalog govops/GovOps-ACC.yaml \
     --policy govops/policies/fraud-detection-opa.rego --engine opa
 
 govops drift v0.9.0
@@ -1087,7 +1087,7 @@ A human analyst flagging the same transaction uses the identical capability id a
 
 | Artifact | Gemara type | Path | Notes |
 |---|---|---|---|
-| Capability catalog | `#CapabilityCatalog` | `govops/GovOps-AC.yaml` | `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` documents software-agent requesters |
+| Capability catalog | `#CapabilityCatalog` | `govops/GovOps-ACC.yaml` | `ec0e5e80cae8a6933dd1e0ad377b1c92f5c9fa8062d32e547ca52a0ea9ceffa2` documents software-agent requesters |
 | Deployed policy | OPA/Rego | `govops/policies/fraud-detection-opa.rego` | Evaluates Fraud System PARC requests |
 
 ### Correctness Properties Demonstrated
